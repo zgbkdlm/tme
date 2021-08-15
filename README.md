@@ -1,6 +1,7 @@
 # Taylor moment expansion (TME) in Python and Matlab
 
 [![TME Python Unittest](https://github.com/zgbkdlm/tme/actions/workflows/unittest_py.yml/badge.svg)](https://github.com/zgbkdlm/tme/actions/workflows/unittest_py.yml)
+[![Documentation Status](https://readthedocs.org/projects/tme/badge/?version=latest)](https://tme.readthedocs.io/en/latest/?badge=latest)
 
 This repository presents Python (SymPy and JaX) and Matlab implementations of TME. 
 
