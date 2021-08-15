@@ -1,0 +1,30 @@
+name: Publish to PyPI
+
+on: 
+  release:
+    types: published
+
+jobs:
+  build-n-publish:
+    name: Build and publish to PyPI
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@2
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+    - name: Install twine and wheel, and build
+      working-directory: ./python
+      run: |
+        pip install twine wheel
+        python setup.py sdist bdist_wheel
+        twine check dist/*
+    - name: Publish distribution to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        user: __token__
+        password: ${{ secrets.TEST_PYPI_TOKEN }}
+        packages_dir: ./python/dist
+        verify_metadata: false

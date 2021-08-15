@@ -1,0 +1,8 @@
+*.mat
+.vscode
+python/venv
+python/tme.egg-info
+python/.idea
+docs/build
+.ipynb_checkpoints
+__pycache__
