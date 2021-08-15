@@ -1,6 +1,10 @@
 Changelog
 
-0.1.1 (working release)
+0.1.2 (working release)
+-----------------------
+No changes yet.
+
+0.1.1 (August 15, 2021)
 -----------------------
 1. Examples in README.md and ./python/README.md are missing `import jax.numpy as jnp`. 
 Fixed.
