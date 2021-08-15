@@ -20,6 +20,7 @@ import tme.base_jax as tme
 from jax import jit
 
 # Define SDE coefficients.
+alp = 1.
 def drift(x):
     return jnp.array([x[1],
                       x[0] * (alp - x[0] ** 2) - x[1]])

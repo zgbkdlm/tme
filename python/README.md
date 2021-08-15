@@ -13,6 +13,7 @@ import tme.base_jax as tme
 from jax import jit
 
 # Define SDE coefficients.
+alp = 1.
 def drift(x):
     return jnp.array([x[1],
                       x[0] * (alp - x[0] ** 2) - x[1]])
@@ -33,9 +34,6 @@ def tme_m_cov(x, dt):
 # Compute E[X(t) | X(0)=x0]
 x0 = jnp.array([0., -1])
 t = 1.
-
-m_t, cov_t = tme_m_cov(x0, t)
-``` = 1.
 
 m_t, cov_t = tme_m_cov(x0, t)
 ```
