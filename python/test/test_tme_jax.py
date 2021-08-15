@@ -1,12 +1,11 @@
 import unittest
-import numpy as np
-import sympy as sp
-import numpy.testing as npt
-import jax.numpy as jnp
 
+import jax.numpy as jnp
+import numpy as np
+import numpy.testing as npt
+import sympy as sp
 import tme.base_jax as tme_jax
 import tme.base_sympy as tme_sp
-
 from jax import jit
 from jax.config import config
 
@@ -19,9 +18,6 @@ def phi_sym(x):
 
 def phi_jax(x):
     return jnp.array([x[0] * x[1], x[1] ** 3])
-
-
-phi_out_ndims = 1
 
 
 class TestJaxVsSymPy(unittest.TestCase):
@@ -68,10 +64,9 @@ class TestJaxVsSymPy(unittest.TestCase):
         x = 0.1 * np.random.randn(self.dim_x)
 
         list_of_Ap_sympy = self.gen_Ap_sympy()
-        list_of_Ap_jax = tme_jax.generator_power(phi_jax, phi_out_ndims,
-                                                 self.a_jax, self.b_jax, jnp.eye(self.dim_w), self.order)
-        list_of_Ap_jax_naive = tme_jax.generator_power_naive(phi_jax, phi_out_ndims,
-                                                             self.a_jax, self.b_jax, jnp.eye(self.dim_w), self.order)
+        list_of_Ap_jax = tme_jax.generator_power(phi_jax, self.a_jax, self.b_jax, jnp.eye(self.dim_w), self.order)
+        list_of_Ap_jax_naive = tme_jax.generator_power_naive(phi_jax, self.a_jax, self.b_jax, jnp.eye(self.dim_w),
+                                                             self.order)
 
         for Ap_sympy, Ap_jax, Ap_jax_naive in zip(list_of_Ap_sympy, list_of_Ap_jax, list_of_Ap_jax_naive):
             Ap_func_sympy = sp.lambdify([self.sym_x], Ap_sympy, 'numpy')
@@ -85,8 +80,8 @@ class TestJaxVsSymPy(unittest.TestCase):
             def jitted_Ap_naive(z):
                 return Ap_jax_naive(z)
 
-            Ap_result_jax = jitted_Ap(jnp.array(x)).block_until_ready()
-            Ap_result_jax_naive = jitted_Ap_naive(jnp.array(x)).block_until_ready()
+            Ap_result_jax = jitted_Ap(jnp.array(x))
+            Ap_result_jax_naive = jitted_Ap_naive(jnp.array(x))
 
             npt.assert_allclose(Ap_result_jax, np.squeeze(Ap_result_sympy))
             npt.assert_allclose(Ap_result_jax, Ap_result_jax_naive)
@@ -132,8 +127,7 @@ class TestJaxVsSymPy(unittest.TestCase):
 
             @jit
             def jitted_expec(z):
-                return tme_jax.expectation(phi_jax, phi_out_ndims,
-                                           z, dt, self.a_jax, self.b_jax, jnp.eye(self.dim_w), order)
+                return tme_jax.expectation(phi_jax, z, dt, self.a_jax, self.b_jax, jnp.eye(self.dim_w), order)
 
             expec_result_jax = jitted_expec(jnp.array(x)).block_until_ready()
 

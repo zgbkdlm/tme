@@ -29,11 +29,11 @@ Authors
 -------
 Adrien Corenflos and Zheng Zhao, 2021
 """
-import jax.numpy as jnp
-
-from jax import jacfwd, jvp, hessian, linearize, vmap
 from math import factorial, comb
 from typing import Callable, List, Tuple
+
+import jax.numpy as jnp
+from jax import jacfwd, jvp, hessian, linearize, vmap
 
 __all__ = ['phi_i',
            'phi_ii',
@@ -79,8 +79,7 @@ def phi_ii(x: jnp.ndarray) -> jnp.ndarray:
     return jnp.outer(x, x)
 
 
-def generator(phi: Callable,
-              x: jnp.ndarray,
+def generator(phi: Callable, x: jnp.ndarray,
               a: Callable, b: Callable, Qw: jnp.ndarray) -> jnp.ndarray:
     r"""Infinitesimal generator for diffusion processes in Ito's SDE constructions.
 
@@ -114,9 +113,7 @@ def generator(phi: Callable,
     return jacfwd(phi)(x) @ a(x) + 0.5 * jnp.trace(hessian(phi)(x) @ (bb @ Qw @ bb.T), axis1=-2, axis2=-1)
 
 
-def generator_power_naive(phi: Callable, phi_out_ndims: int,
-                          a: Callable, b: Callable, Qw: jnp.ndarray,
-                          order: int) -> List[Callable]:
+def generator_power_naive(phi: Callable, a: Callable, b: Callable, Qw: jnp.ndarray, order: int) -> List[Callable]:
     """Iterations/power of infinitesimal generator in a naive implementation.
 
     This function is almost the same as with :py:func:`generator_power`, except that here the code is not
@@ -130,9 +127,6 @@ def generator_power_naive(phi: Callable, phi_out_ndims: int,
     -----
     By default, functions :py:func:`mean_and_cov` and :py:func:`expectation` call :py:func:`generator_power`
     instead of this naive implementation.
-
-    The argument :code:`phi_out_ndims` is not used but kept here in order to keep consistent with
-    :py:func:`generator_power`.
     """
     list_of_gen_powers = [phi]
 
@@ -146,8 +140,7 @@ def generator_power_naive(phi: Callable, phi_out_ndims: int,
     return list_of_gen_powers
 
 
-def generator_power(phi: Callable, phi_out_ndims: int,
-                    a: Callable, b: Callable, Qw: jnp.ndarray,
+def generator_power(phi: Callable, a: Callable, b: Callable, Qw: jnp.ndarray,
                     order: int) -> List[Callable]:
     r"""Iterations/power of infinitesimal generator.
 
@@ -159,10 +152,6 @@ def generator_power(phi: Callable, phi_out_ndims: int,
     ----------
     phi : Callable (d, ) -> (m, n)
         Target function.
-    phi_out_ndims : int, default=2
-        The implementation needs to transpose certain Hessian product matrices.
-        Hence, the function has to know what the output shape (dim) of function :code:`phi` is.
-        Specify here the number of output dimensions of :code:`phi`.
     a : Callable (d, ) -> (d, )
         SDE drift coefficient.
     b : Callable (d, ) -> (d, w)
@@ -185,12 +174,6 @@ def generator_power(phi: Callable, phi_out_ndims: int,
     -----
     The implementation is due to Adrien Corenflos. Thank you for contributing this.
     """
-    if phi_out_ndims == 1:
-        perm_table = [2, 0, 1]
-    elif phi_out_ndims == 2:
-        perm_table = [2, 3, 0, 1]
-    else:
-        raise ValueError(f'Output dimension {phi_out_ndims} of phi is not supported yet.')
 
     def jac_part(z, f):
         return jvp(f, (z,), (a(z),))[1]
@@ -205,9 +188,7 @@ def generator_power(phi: Callable, phi_out_ndims: int,
         return vmap(linearized_f, in_axes=0, out_axes=1)(b(z).T)
 
     def hess_part(z, f):
-        hess_val = jnp.transpose(hess_prod_2(z, f), perm_table)
-        res = jnp.trace(hess_val @ Qw, axis1=-2, axis2=-1)
-        return res
+        return jnp.einsum("ii...,ii", hess_prod_2(z, f), Qw)
 
     gen_power = phi
 
@@ -258,8 +239,8 @@ def mean_and_cov(x: jnp.ndarray, dt: float,
         TME approximation of covariance :math:`\mathrm{Cov}[X(t + \Delta t) \mid X(t)=x]`.
     """
     # Give generator powers of phi^I and phi^II then evaluate them all
-    list_of_A_phi_i = gen_pow(phi_i, phi_out_ndims=1, a=a, b=b, Qw=Qw, order=order)
-    list_of_A_phi_ii = gen_pow(phi_ii, phi_out_ndims=2, a=a, b=b, Qw=Qw, order=order)
+    list_of_A_phi_i = gen_pow(phi_i, a=a, b=b, Qw=Qw, order=order)
+    list_of_A_phi_ii = gen_pow(phi_ii, a=a, b=b, Qw=Qw, order=order)
 
     A_phi_i_powers = [func(x) for func in list_of_A_phi_i]
     A_phi_ii_powers = [func(x) for func in list_of_A_phi_ii]
@@ -284,7 +265,7 @@ def mean_and_cov(x: jnp.ndarray, dt: float,
     return m, cov
 
 
-def expectation(phi: Callable, phi_out_ndims: int,
+def expectation(phi: Callable,
                 x: jnp.ndarray, dt: float,
                 a: Callable, b: Callable, Qw: jnp.ndarray,
                 order: int = 3,
@@ -295,10 +276,8 @@ def expectation(phi: Callable, phi_out_ndims: int,
 
     Parameters
     ----------
-    phi : Callable (d, ) -> (m, n)
+    phi : Callable (d, ) -> (...)
         Target function (must be sufficiently smooth depending on the order).
-    phi_out_ndims : int
-        See the docstring of :py:func:`generator_power`.
     x : jnp.ndarray (d, )
         The state at which the generator is evaluated (i.e., the :math:`x` in
         :math:`\mathbb{E}[\phi(X(t + \Delta t)) \mid X(t)=x]`).
@@ -323,7 +302,7 @@ def expectation(phi: Callable, phi_out_ndims: int,
     jnp.ndarray (m, n)
         TME approximation of :math:`\mathbb{E}[\phi(X(t + \Delta t)) \mid X(t)]`.
     """
-    list_of_A_phi = gen_pow(phi, phi_out_ndims=phi_out_ndims, a=a, b=b, Qw=Qw, order=order)
+    list_of_A_phi = gen_pow(phi, a=a, b=b, Qw=Qw, order=order)
 
     Aphi = phi(x)
     for r in range(1, order + 1):
