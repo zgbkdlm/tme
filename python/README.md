@@ -10,6 +10,7 @@ Install via `pip install tme` or `python setup.py install`.
 
 ```python
 import tme.base_jax as tme
+import jax.numpy as jnp
 from jax import jit
 
 # Define SDE coefficients.
