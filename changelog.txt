@@ -4,6 +4,9 @@ Changelog
 -----------------------
 1. Examples in README.md and ./python/README.md are missing `import jax.numpy as jnp`. 
 Fixed.
+2. Rewrote the Hessian product in `base_jax.generator_power()`. The unnecessary argument `phi_out_ndims` 
+is now removed.
+3. Added unittest for 1d and 2d target function phi
 
 0.1.0 (August 15, 2021)
 -----------------------

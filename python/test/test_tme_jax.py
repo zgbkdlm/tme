@@ -1,12 +1,11 @@
 import unittest
-import numpy as np
-import sympy as sp
-import numpy.testing as npt
-import jax.numpy as jnp
 
+import jax.numpy as jnp
+import numpy as np
+import numpy.testing as npt
+import sympy as sp
 import tme.base_jax as tme_jax
 import tme.base_sympy as tme_sp
-
 from jax import jit
 from jax.config import config
 
@@ -21,7 +20,8 @@ def phi_jax(x):
     return jnp.array([x[0] * x[1], x[1] ** 3])
 
 
-phi_out_ndims = 1
+def phi_jax_2d(x):
+    return jnp.array([[x[0] * x[1], x[1] ** 3]])
 
 
 class TestJaxVsSymPy(unittest.TestCase):
@@ -68,10 +68,9 @@ class TestJaxVsSymPy(unittest.TestCase):
         x = 0.1 * np.random.randn(self.dim_x)
 
         list_of_Ap_sympy = self.gen_Ap_sympy()
-        list_of_Ap_jax = tme_jax.generator_power(phi_jax, phi_out_ndims,
-                                                 self.a_jax, self.b_jax, jnp.eye(self.dim_w), self.order)
-        list_of_Ap_jax_naive = tme_jax.generator_power_naive(phi_jax, phi_out_ndims,
-                                                             self.a_jax, self.b_jax, jnp.eye(self.dim_w), self.order)
+        list_of_Ap_jax = tme_jax.generator_power(phi_jax, self.a_jax, self.b_jax, jnp.eye(self.dim_w), self.order)
+        list_of_Ap_jax_naive = tme_jax.generator_power_naive(phi_jax, self.a_jax, self.b_jax, jnp.eye(self.dim_w),
+                                                             self.order)
 
         for Ap_sympy, Ap_jax, Ap_jax_naive in zip(list_of_Ap_sympy, list_of_Ap_jax, list_of_Ap_jax_naive):
             Ap_func_sympy = sp.lambdify([self.sym_x], Ap_sympy, 'numpy')
@@ -85,10 +84,15 @@ class TestJaxVsSymPy(unittest.TestCase):
             def jitted_Ap_naive(z):
                 return Ap_jax_naive(z)
 
-            Ap_result_jax = jitted_Ap(jnp.array(x)).block_until_ready()
-            Ap_result_jax_naive = jitted_Ap_naive(jnp.array(x)).block_until_ready()
+            Ap_result_jax = jitted_Ap(jnp.array(x))
+            Ap_result_jax_naive = jitted_Ap_naive(jnp.array(x))
 
-            npt.assert_allclose(Ap_result_jax, np.squeeze(Ap_result_sympy))
+            # Shape must be consistent with phi
+            assert (phi_jax(jnp.array(x)).shape == Ap_result_jax.shape)
+            assert (Ap_result_jax.shape == Ap_result_jax_naive.shape)
+
+            # Check numerical results
+            npt.assert_allclose(jnp.squeeze(Ap_result_jax), np.squeeze(Ap_result_sympy))
             npt.assert_allclose(Ap_result_jax, Ap_result_jax_naive)
 
     def test_mean_and_cov(self):
@@ -98,6 +102,7 @@ class TestJaxVsSymPy(unittest.TestCase):
         dt = 0.01
 
         for order in [2, 3, 4]:
+            print(f'Testing order {order} for mean_and_cov().')
             # TODO: SymPy simplify() throws weird "__new__ missing" error for order >= 4.
             m_sympy, cov_sympy = tme_sp.mean_and_cov(self.sym_x, self.a, self.b, self.Q, self.sym_dt,
                                                      order, simp=False)
@@ -113,8 +118,8 @@ class TestJaxVsSymPy(unittest.TestCase):
 
             m_result_jax, cov_result_jax = jitted_mcov(jnp.array(x))
 
-            npt.assert_allclose(m_result_jax.block_until_ready(), np.squeeze(m_result_sympy))
-            npt.assert_allclose(cov_result_jax.block_until_ready(), np.squeeze(cov_result_sympy))
+            npt.assert_allclose(m_result_jax, np.squeeze(m_result_sympy))
+            npt.assert_allclose(cov_result_jax, np.squeeze(cov_result_sympy))
 
     def test_expectation(self):
         """Test expectation computations.
@@ -123,6 +128,7 @@ class TestJaxVsSymPy(unittest.TestCase):
         dt = 0.01
 
         for order in [2, 3, 4]:
+            print(f'Testing order {order} for expectation()')
             expec_sympy = tme_sp.expectation(phi_sym(self.sym_x),
                                              self.sym_x, self.a, self.b, self.Q, self.sym_dt,
                                              order, simp=False)
@@ -130,14 +136,18 @@ class TestJaxVsSymPy(unittest.TestCase):
 
             expec_result_sympy = expec_sympy_func(x.reshape(self.dim_x, 1), dt)
 
-            @jit
-            def jitted_expec(z):
-                return tme_jax.expectation(phi_jax, phi_out_ndims,
-                                           z, dt, self.a_jax, self.b_jax, jnp.eye(self.dim_w), order)
+            for phi_func in [phi_jax, phi_jax_2d]:
+                @jit
+                def jitted_expec(z):
+                    return tme_jax.expectation(phi_func, z, dt, self.a_jax, self.b_jax, jnp.eye(self.dim_w), order)
 
-            expec_result_jax = jitted_expec(jnp.array(x)).block_until_ready()
+                expec_result_jax = jitted_expec(jnp.array(x))
 
-            npt.assert_allclose(expec_result_jax, np.squeeze(expec_result_sympy))
+                # Shape must be consistent with phi
+                assert (phi_func(jnp.array(x)).shape == expec_result_jax.shape)
+
+                npt.assert_allclose(jnp.squeeze(expec_result_jax),
+                                    np.squeeze(expec_result_sympy))
 
 
 class TestAgainstLinearSDE():
