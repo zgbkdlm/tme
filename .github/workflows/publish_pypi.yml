@@ -9,9 +9,11 @@ jobs:
   build-n-publish:
     name: Build and publish to PyPI
     runs-on: ubuntu-latest
+    env:
+      PY_VER: "0.0.0.0"
     
     steps:
-    - uses: actions/checkout@2
+    - uses: actions/checkout@v2
     - name: Set up Python 3.9
       uses: actions/setup-python@v2
       with:
@@ -22,7 +24,15 @@ jobs:
         pip install twine wheel
         python setup.py sdist bdist_wheel
         twine check dist/*
+    - name: Save the package version to variable so to cross check with tag
+      working-directory: ./python
+      run: |
+        VER=$(python setup.py --version)
+        echo "Package version is $VER"
+        echo "Tag info is ${{ github.ref }}"
+        echo "PY_VER=$VER" >> $GITHUB_ENV
     - name: Publish distribution to PyPI
+      if: endsWith(github.ref, env.PY_VER)
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         user: __token__
