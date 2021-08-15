@@ -11,6 +11,16 @@ on:
     paths:
       - 'python/**'
       - '!python/examples/**'
+  workflow_dispatch:
+    inputs:
+      name:
+        description: 'Workflow run name'
+        required: true
+        default: 'Manual TME python unittest'
+      reason:
+        description: 'Reason'
+        required: true
+        default: 'Scipts need to be tested'
     
 jobs:
   build:
@@ -44,3 +54,7 @@ jobs:
         run: |
           cd test
           python -m unittest
+      - name: Logging
+        run: |
+          echo "This is ${{ github.event.inputs.name }}!"
+          echo "Reason is ${{ github.event.inputs.reason }}!"
