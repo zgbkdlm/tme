@@ -150,7 +150,7 @@ def generator_power(phi: Callable, a: Callable, b: Callable, Qw: jnp.ndarray,
 
     Parameters
     ----------
-    phi : Callable (d, ) -> (m, n)
+    phi : Callable (d, ) -> (...)
         Target function.
     a : Callable (d, ) -> (d, )
         SDE drift coefficient.
@@ -167,8 +167,8 @@ def generator_power(phi: Callable, a: Callable, b: Callable, Qw: jnp.ndarray,
     List[Callable]
         List of generator functions in ascending power order. Formally, this function returns
         :math:`[\phi, \mathcal{A}\phi, \ldots, \mathcal{A}^p\phi]`, where :code:`p` is the order.
-        Each callable function in this list has exactly the save input-output shape
-        signature as phi:  (d, ) -> (m, n).
+        Each callable function in this list has exactly the same input-output shape
+        signature as phi:  (d, ) -> (...).
 
     Notes
     -----
@@ -299,8 +299,9 @@ def expectation(phi: Callable,
 
     Returns
     -------
-    jnp.ndarray (m, n)
-        TME approximation of :math:`\mathbb{E}[\phi(X(t + \Delta t)) \mid X(t)]`.
+    jnp.ndarray (...)
+        TME approximation of :math:`\mathbb{E}[\phi(X(t + \Delta t)) \mid X(t)]`. The output shape is consistence with
+        the input shape of :code:`phi`.
     """
     list_of_A_phi = gen_pow(phi, a=a, b=b, Qw=Qw, order=order)
 
