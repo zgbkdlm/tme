@@ -6,7 +6,7 @@ import numpy.testing as npt
 import sympy as sp
 import tme.base_jax as tme_jax
 import tme.base_sympy as tme_sp
-from jax import jit
+from jax import jit, jacfwd
 from jax.config import config
 
 def setupModule():
