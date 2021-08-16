@@ -6,10 +6,11 @@ import numpy.testing as npt
 import sympy as sp
 import tme.base_jax as tme_jax
 import tme.base_sympy as tme_sp
-from jax import jit, jacfwd
+from jax import hessian, jit, jacfwd
 from jax.config import config
 
-def setupModule():
+
+def setUpModule():
     config.update("jax_enable_x64", True)
 
 
@@ -36,7 +37,8 @@ def generator_power_naive(phi, a, b, Qw, order: int):
     gen_power = phi
 
     for _ in range(order):
-        def gen_power(z, f=gen_power): return generator(f, z, a, b, Qw)
+        def gen_power(z, f=gen_power):  # noqa
+            return generator(f, z, a, b, Qw)
 
         list_of_gen_powers.append(gen_power)
 
@@ -88,23 +90,14 @@ class TestJaxVsSymPy(unittest.TestCase):
 
         list_of_Ap_sympy = self.gen_Ap_sympy()
         list_of_Ap_jax = tme_jax.generator_power(phi_jax, self.a_jax, self.b_jax, jnp.eye(self.dim_w), self.order)
-        list_of_Ap_jax_naive = tme_jax.generator_power_naive(phi_jax, self.a_jax, self.b_jax, jnp.eye(self.dim_w),
-                                                             self.order)
+        list_of_Ap_jax_naive = generator_power_naive(phi_jax, self.a_jax, self.b_jax, jnp.eye(self.dim_w), self.order)
 
         for Ap_sympy, Ap_jax, Ap_jax_naive in zip(list_of_Ap_sympy, list_of_Ap_jax, list_of_Ap_jax_naive):
             Ap_func_sympy = sp.lambdify([self.sym_x], Ap_sympy, 'numpy')
             Ap_result_sympy = Ap_func_sympy(x.reshape(self.dim_x, 1))
 
-            @jit
-            def jitted_Ap(z):
-                return Ap_jax(z)
-
-            @jit
-            def jitted_Ap_naive(z):
-                return Ap_jax_naive(z)
-
-            Ap_result_jax = jitted_Ap(jnp.array(x))
-            Ap_result_jax_naive = jitted_Ap_naive(jnp.array(x))
+            Ap_result_jax = Ap_jax(jnp.array(x))
+            Ap_result_jax_naive = Ap_jax_naive(jnp.array(x))
 
             npt.assert_allclose(Ap_result_jax, np.squeeze(Ap_result_sympy))
             npt.assert_allclose(Ap_result_jax, Ap_result_jax_naive)
@@ -129,10 +122,10 @@ class TestJaxVsSymPy(unittest.TestCase):
             def jitted_mcov(z):
                 return tme_jax.mean_and_cov(z, dt, self.a_jax, self.b_jax, jnp.eye(self.dim_w), order)
 
-            m_result_jax, cov_result_jax = jitted_mcov(jnp.array(x))
+            m_result_jax, cov_result_jax = jitted_mcov(x)
 
-            npt.assert_allclose(m_result_jax.block_until_ready(), np.squeeze(m_result_sympy))
-            npt.assert_allclose(cov_result_jax.block_until_ready(), np.squeeze(cov_result_sympy))
+            npt.assert_allclose(m_result_jax, np.squeeze(m_result_sympy))
+            npt.assert_allclose(cov_result_jax, np.squeeze(cov_result_sympy))
 
     def test_expectation(self):
         """Test expectation computations.
@@ -152,7 +145,7 @@ class TestJaxVsSymPy(unittest.TestCase):
             def jitted_expec(z):
                 return tme_jax.expectation(phi_jax, z, dt, self.a_jax, self.b_jax, jnp.eye(self.dim_w), order)
 
-            expec_result_jax = jitted_expec(jnp.array(x)).block_until_ready()
+            expec_result_jax = jitted_expec(x)
 
             npt.assert_allclose(expec_result_jax, np.squeeze(expec_result_sympy))
 

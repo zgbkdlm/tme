@@ -2,10 +2,9 @@
 Test TME disc
 """
 import unittest
-import sympy
 
-from sympy import Symbol, MatrixSymbol, Matrix, sin, cos, eye, exp, simplify, tanh
 import tme.base_sympy as tme
+from sympy import Symbol, MatrixSymbol, Matrix, sin, cos, eye, exp, simplify, tanh
 
 
 class TestGenerator(unittest.TestCase):
