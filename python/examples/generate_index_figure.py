@@ -45,11 +45,8 @@ m_results = np.zeros((num_time_steps, 2))
 cov_results = np.zeros((num_time_steps, 2, 2))
 
 # Compute for t=0.01, ..., 1
-import time
-tic = time.time()
 m_results, cov_results = vmap(tme_m_cov, in_axes=[None, 0])(x, T)
-m_results.block_until_ready()
-print(time.time() - tic)
+
 
 def anime_init():
     plt.plot(T[:1], m_results[:1, 0],
