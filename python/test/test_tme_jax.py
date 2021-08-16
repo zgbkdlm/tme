@@ -9,7 +9,8 @@ import tme.base_sympy as tme_sp
 from jax import jit
 from jax.config import config
 
-config.update("jax_enable_x64", True)
+def setupModule():
+    config.update("jax_enable_x64", True)
 
 
 def phi_sym(x):
@@ -24,13 +25,12 @@ def phi_jax_2d(x):
     return jnp.array([[x[0] * x[1], x[1] ** 3]])
 
 
-def generator(phi: Callable, x: jnp.ndarray,
-              a: Callable, b: Callable, Qw: jnp.ndarray) -> jnp.ndarray:
+def generator(phi, x, a, b, Qw):
     bb = b(x)
     return jacfwd(phi)(x) @ a(x) + 0.5 * jnp.trace(hessian(phi)(x) @ (bb @ Qw @ bb.T), axis1=-2, axis2=-1)
 
 
-def generator_power_naive(phi: Callable, a: Callable, b: Callable, Qw: jnp.ndarray, order: int) -> List[Callable]:
+def generator_power_naive(phi, a, b, Qw, order: int):
     list_of_gen_powers = [phi]
 
     gen_power = phi
@@ -41,8 +41,6 @@ def generator_power_naive(phi: Callable, a: Callable, b: Callable, Qw: jnp.ndarr
         list_of_gen_powers.append(gen_power)
 
     return list_of_gen_powers
-
-
 
 
 class TestJaxVsSymPy(unittest.TestCase):
