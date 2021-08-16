@@ -23,6 +23,7 @@ Authors
 -------
 Adrien Corenflos and Zheng Zhao, 2021
 """
+# TODO: The logic further down can be improved dramatically if we make diagonal noise specific logic.
 
 from math import factorial, comb
 from typing import Callable, List, Tuple
@@ -35,6 +36,32 @@ __all__ = ['generator',
            'generator_power_naive',
            'mean_and_cov',
            'expectation']
+
+
+def _format_noise(Qw):
+    ndim = jnp.ndim(Qw)
+    if ndim == 0:
+        return jnp.atleast_2d(Qw)
+    if ndim == 1:
+        return jnp.diag(Qw)
+    if ndim == 2:
+        if Qw.shape[0] != Qw.shape[1]:
+            raise ValueError(f"If Qw is a matrix, it must be squared. {Qw.shape} was passed")
+        return Qw
+    else:
+        raise ValueError(f"Qw must have at most 2 dimensions. {ndim} were passed")
+
+
+def _format_diffusion(bz):
+    ndim = jnp.ndim(bz)
+    if ndim == 0:
+        return jnp.atleast_2d(bz)
+    if ndim == 1:
+        return jnp.expand_dims(bz, 1)
+    if ndim == 2:
+        return bz
+    else:
+        raise ValueError(f"b(z) must have at most 2 dimensions. {ndim} were passed")
 
 
 def generator_power(phi: Callable, a: Callable, b: Callable, Qw: jnp.ndarray,
@@ -73,22 +100,26 @@ def generator_power(phi: Callable, a: Callable, b: Callable, Qw: jnp.ndarray,
     The implementation is due to Adrien Corenflos. Thank you for contributing this.
     """
 
+    Qw = _format_noise(Qw)
+
     def jac_part(z, f):
         # This computes the Jacobian-vector product J[f](z) * a(z)
         return jvp(f, (z,), (a(z),))[1]
 
     def hess_prod_1(z, f):
         # This computes the Jacobian-vector product J[f](z) * b(z)
+        bz = _format_diffusion(b(z))
         _out, linearized_f = linearize(f, z)
-        return vmap(linearized_f, in_axes=1, out_axes=0)(b(z))
+        return vmap(linearized_f, in_axes=1, out_axes=0)(bz)
 
     def hess_prod_2(z, f):
         # This computes the double Jacobian-vector product J[z -> J[f](z) * b(z)](z) * b(z).T
         # This is an equivalent, but more efficient way, to computing the Hessian form b(z).T * H[f](z) * b(z)
         # TODO: Verify is linearize is faster than vectorized vjp here.
+        bz = _format_diffusion(b(z))
         temp = lambda zz: hess_prod_1(zz, f)
         _out, linearized_f = linearize(temp, z)
-        return vmap(linearized_f, in_axes=0, out_axes=1)(b(z).T)
+        return vmap(linearized_f, in_axes=0, out_axes=1)(bz.T)
 
     def hess_part(z, f):
         # This computes the trace of the matrix product batched along the trailing dimensions of the Hessian.

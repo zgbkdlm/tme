@@ -6,15 +6,15 @@ import jax.numpy as jnp
 
 import tme.base_jax as tme
 
+from jax import vmap
 import matplotlib.pyplot as plt
-
-from jax import jit
 from matplotlib.animation import FuncAnimation
 from typing import Tuple
 
+
+
 alp = 1.
-q = 0.1
-Qw = q * jnp.eye(1)
+Qw = 0.1
 
 
 def drift(x: jnp.ndarray) -> jnp.ndarray:
@@ -24,11 +24,9 @@ def drift(x: jnp.ndarray) -> jnp.ndarray:
 
 # Keep in mind that we need the dispersion output a matrix
 def dispersion(x: jnp.ndarray) -> jnp.ndarray:
-    return jnp.array([[0.],
-                      [x[0]]])
+    return jnp.array([0., x[0]])
 
 
-@jit
 def tme_m_cov(x: jnp.ndarray, dt: float) -> Tuple[jnp.ndarray, jnp.ndarray]:
     return tme.mean_and_cov(x=x, dt=dt,
                             a=drift, b=dispersion, Qw=Qw,
@@ -47,9 +45,11 @@ m_results = np.zeros((num_time_steps, 2))
 cov_results = np.zeros((num_time_steps, 2, 2))
 
 # Compute for t=0.01, ..., 1
-for idx, t in enumerate(T):
-    m_results[idx], cov_results[idx] = tme_m_cov(x, t)
-
+import time
+tic = time.time()
+m_results, cov_results = vmap(tme_m_cov, in_axes=[None, 0])(x, T)
+m_results.block_until_ready()
+print(time.time() - tic)
 
 def anime_init():
     plt.plot(T[:1], m_results[:1, 0],
