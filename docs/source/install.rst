@@ -3,6 +3,12 @@ Installation
 
 You can install :code:`tme` by either :code:`pip` or :code:`setup.py`.
 
+If you want to use JaX TME
+--------------------------
+Please note that :code:`jax` is **not** included in the requirement list, because we would like 
+the user themself to manually install `jax`. For the installation of `jax`, see, `this link <https://github.com/google/jax#installation>`_.
+
+If you just want to use SymPy TME, you can ignore installing JaX.
 
 By :code:`setup.py`
 -------------------

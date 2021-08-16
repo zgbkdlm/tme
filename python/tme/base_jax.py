@@ -5,16 +5,10 @@ For math details, please see the docstring of :py:mod:`tme.base_sympy`.
 
 Functions
 ---------
-:py:func:`phi_i`
-    Target function for inducing mean approximation.
-:py:func:`phi_ii`
-    Target function for inducing second moment approximation.
 :py:func:`generator`
-    Infinitesimal generator.
+    Infinitesimal generator. This is a helper function around :py:func:`generator_power`.
 :py:func:`generator_power`
     Iterations/power of infinitesimal generators.
-:py:func:`generator_power_naive`
-    A naive implementation of iterations/power of infinitesimal generators.
 :py:func:`mean_and_cov`
     TME approximation for mean and covariance. In case you just want to compute the mean, use function
     :py:func:`expectation` with argument :code:`phi` fed by an identity function.
@@ -29,138 +23,72 @@ Authors
 -------
 Adrien Corenflos and Zheng Zhao, 2021
 """
+# TODO: The logic further down can be improved dramatically if we make diagonal noise specific logic.
+
+try:
+    import jax as _
+except:
+    raise ImportError("By default the library is not packaged with JaX due to the need to support CPU and GPU users. "
+                      "In order to use it, follow the instructions on https://github.com/google/jax#installation.")
+
 from math import factorial, comb
 from typing import Callable, List, Tuple
 
 import jax.numpy as jnp
-from jax import jacfwd, jvp, hessian, linearize, vmap
+from jax import jvp, linearize, vmap
 
-__all__ = ['phi_i',
-           'phi_ii',
-           'generator',
+__all__ = ['generator',
            'generator_power',
-           'generator_power_naive',
            'mean_and_cov',
            'expectation']
 
 
-def phi_i(x: jnp.ndarray) -> jnp.ndarray:
-    r"""Target function for inducing mean :math:`\mathbb{E}[X(t + \Delta t) \mid X(t)]`.
-
-    Nothing but an identity function.
-
-    See, Zhao 2021, Section 3.3.
-
-    Parameters
-    ----------
-    x : jnp.ndarray (d, )
-
-    Returns
-    -------
-    jnp.ndarray (d, )
-    """
-    return x
+def _format_noise(Qw):
+    ndim = jnp.ndim(Qw)
+    if ndim == 0:
+        return jnp.atleast_2d(Qw)
+    if ndim == 1:
+        return jnp.diag(Qw)
+    if ndim == 2:
+        if Qw.shape[0] != Qw.shape[1]:
+            raise ValueError(f"If Qw is a matrix, it must be squared. {Qw.shape} was passed")
+        return Qw
+    else:
+        raise ValueError(f"Spectral density Qw must have at most 2 dimensions. {ndim} were passed")
 
 
-def phi_ii(x: jnp.ndarray) -> jnp.ndarray:
-    r"""Target function for inducing second moment
-    :math:`\mathbb{E}[X(t + \Delta t) \, X(t + \Delta t)^\top \mid X(t)]`.
-
-    See, Zhao 2021, Section 3.3.
-
-    Parameters
-    ----------
-    x : jnp.ndarray (d, )
-
-    Returns
-    -------
-    jnp.ndarray (d, d)
-    """
-    return jnp.outer(x, x)
-
-
-def generator(phi: Callable, x: jnp.ndarray,
-              a: Callable, b: Callable, Qw: jnp.ndarray) -> jnp.ndarray:
-    r"""Infinitesimal generator for diffusion processes in Ito's SDE constructions.
-
-    For math details, see the docstring of :obj:`tme.base_sympy.generator` (or more precisely, should be
-    :obj:`tme.base_sympy.mat`).
-
-    Parameters
-    ----------
-    phi : Callable (d, ) -> (m, n)
-        Target function.
-    x : jnp.ndarray (d, )
-        The state at which the generator is evaluated.
-    a : Callable (d, ) -> (d, )
-        SDE drift coefficient.
-    b : Callable (d, ) -> (d, w)
-        SDE dispersion coefficient.
-    Qw : jnp.ndarray (w, w)
-        Symbolic spectral density of :math:`W`.
-
-    Returns
-    -------
-    jnp.ndarray (d, ) -> (m, n)
-        :math:`(\mathcal{A}\phi)(x)`.
-
-    Notes
-    -----
-    The generator here refers to :math:`\overline{\mathcal{A}}` in Zhao (2021). With a slight abuse of
-    notation, we will keep on using :math:`\mathcal{A}` in this doc page.
-    """
-    bb = b(x)
-    return jacfwd(phi)(x) @ a(x) + 0.5 * jnp.trace(hessian(phi)(x) @ (bb @ Qw @ bb.T), axis1=-2, axis2=-1)
-
-
-def generator_power_naive(phi: Callable, a: Callable, b: Callable, Qw: jnp.ndarray, order: int) -> List[Callable]:
-    """Iterations/power of infinitesimal generator in a naive implementation.
-
-    This function is almost the same as with :py:func:`generator_power`, except that here the code is not
-    really optimised but a direct and crude implementation of generator iterations.
-    For details, see :py:func:`generator_power`.
-
-    Since the code here is extremely simple, this function could be a good backup if
-    :py:func:`generator_power` somehow fails.
-
-    Notes
-    -----
-    By default, functions :py:func:`mean_and_cov` and :py:func:`expectation` call :py:func:`generator_power`
-    instead of this naive implementation.
-    """
-    list_of_gen_powers = [phi]
-
-    gen_power = phi
-
-    for _ in range(order):
-        def gen_power(z, f=gen_power): return generator(f, z, a, b, Qw)
-
-        list_of_gen_powers.append(gen_power)
-
-    return list_of_gen_powers
+def _format_dispersion(bz):
+    ndim = jnp.ndim(bz)
+    if ndim == 0:
+        return jnp.atleast_2d(bz)
+    if ndim == 1:
+        return jnp.expand_dims(bz, 1)
+    if ndim == 2:
+        return bz
+    else:
+        raise ValueError(f"Dispersion coefficient b(z) must have at most 2 dimensions. {ndim} were passed")
 
 
 def generator_power(phi: Callable, a: Callable, b: Callable, Qw: jnp.ndarray,
-                    order: int) -> List[Callable]:
+                    order: int = 1) -> List[Callable]:
     r"""Iterations/power of infinitesimal generator.
 
     For math details, see the docstring of :py:func:`tme.base_sympy.generator_power`.
 
-    This is a better optimised implementation compared to :py:func:`generator_power_naive`.
-
     Parameters
     ----------
-    phi : Callable (d, ) -> (...)
+    phi : Callable (d,) -> (...)
         Target function.
-    a : Callable (d, ) -> (d, )
+    a : Callable (d,) -> (d,)
         SDE drift coefficient.
-    b : Callable (d, ) -> (d, w)
+    b : Callable (d,) -> (d, w)
         SDE dispersion coefficient.
     Qw : jnp.ndarray (w, w)
-        Symbolic spectral density of :math:`W`. Please note that we only tested the code when
-        :code:`Qw` a constant matrix.
-    order : int
-        Number of generator iterations. Must be >=0.
+        Spectral density of :math:`W`. Please note that you can feed :code:`Qw` as an array or a float, the function
+        will automatically rearrange it into a matrix.
+    order : int, optional
+        Number of generator iterations. Must be >=0. Default is 1, which corresponds to the standard infinitesimal
+        generator.
 
     Returns
     -------
@@ -168,26 +96,39 @@ def generator_power(phi: Callable, a: Callable, b: Callable, Qw: jnp.ndarray,
         List of generator functions in ascending power order. Formally, this function returns
         :math:`[\phi, \mathcal{A}\phi, \ldots, \mathcal{A}^p\phi]`, where :code:`p` is the order.
         Each callable function in this list has exactly the same input-output shape
-        signature as phi:  (d, ) -> (...).
+        signature as phi:  (d,) -> (...).
 
     Notes
     -----
     The implementation is due to Adrien Corenflos. Thank you for contributing this.
+
+    You may also find a naive implementation of infinitesimal generators and their iterations in the test file
+    :code:`./test/test_tme_jax.py`.
     """
 
+    Qw = _format_noise(Qw)
+
     def jac_part(z, f):
+        # This computes the Jacobian-vector product J[f](z) * a(z)
         return jvp(f, (z,), (a(z),))[1]
 
     def hess_prod_1(z, f):
+        # This computes the Jacobian-vector product J[f](z) * b(z)
+        bz = _format_dispersion(b(z))
         _out, linearized_f = linearize(f, z)
-        return vmap(linearized_f, in_axes=1, out_axes=0)(b(z))
+        return vmap(linearized_f, in_axes=1, out_axes=0)(bz)
 
     def hess_prod_2(z, f):
+        # This computes the double Jacobian-vector product J[z -> J[f](z) * b(z)](z) * b(z).T
+        # This is an equivalent, but more efficient way, to computing the Hessian form b(z).T * H[f](z) * b(z)
+        # TODO: Verify is linearize is faster than vectorized vjp here.
+        bz = _format_dispersion(b(z))
         temp = lambda zz: hess_prod_1(zz, f)
         _out, linearized_f = linearize(temp, z)
-        return vmap(linearized_f, in_axes=0, out_axes=1)(b(z).T)
+        return vmap(linearized_f, in_axes=0, out_axes=1)(bz.T)
 
     def hess_part(z, f):
+        # This computes the trace of the matrix product batched along the trailing dimensions of the Hessian.
         return jnp.einsum("ii...,ii", hess_prod_2(z, f), Qw)
 
     gen_power = phi
@@ -203,44 +144,76 @@ def generator_power(phi: Callable, a: Callable, b: Callable, Qw: jnp.ndarray,
     return list_of_gen_powers
 
 
+def generator(phi: Callable, a: Callable, b: Callable, Qw: jnp.ndarray) -> Callable:
+    r"""Infinitesimal generator for diffusion processes in Ito's SDE constructions.
+
+    .. math::
+
+        (\mathcal{A}\phi)(x) = \sum^d_{i=1} a_i(x)\,\frac{\partial \phi}{\partial x_i}(x)
+        + \frac{1}{2}\, \sum^d_{i,j=1} \Gamma_{ij}(x) \, \frac{\partial^2 \phi}{\partial x_i \, \partial x_j}(x),
+
+    where :math:`\phi\colon \mathbb{R}^d \to \mathbb{R}` must be sufficiently smooth function depending on the
+    expansion order, and :math:`\Gamma(x) = b(x) \, Q_w \, b(x)^\top`.
+
+    This is a helper function around :py:func:`generator_power`.
+
+    Parameters
+    ----------
+    phi : Callable (d,) -> (...)
+        Target function.
+    a : Callable (d,) -> (d,)
+        SDE drift coefficient.
+    b : Callable (d,) -> (d, w)
+        SDE dispersion coefficient.
+    Qw : jnp.ndarray (w, w)
+        Spectral density of :math:`W`.
+
+    Returns
+    -------
+    Callable (...)
+        A callable function which carries out :math:`x \mapsto \mathcal{A}\phi`. The output shape of this function
+        is the same as :code:`phi`.
+    """
+    return generator_power(phi, a, b, Qw, 1)[1]
+
+
 def mean_and_cov(x: jnp.ndarray, dt: float,
                  a: Callable, b: Callable, Qw: jnp.ndarray,
-                 order: int = 3,
-                 gen_pow: Callable = generator_power) -> Tuple[jnp.ndarray, jnp.ndarray]:
+                 order: int = 3) -> Tuple[jnp.ndarray, jnp.ndarray]:
     r"""TME approximation for mean and covariance.
 
     For math details, see the docstring of :py:func:`tme.base_sympy.mean_and_cov`.
 
     Parameters
     ----------
-    x : jnp.ndarray (d, )
+    x : jnp.ndarray (d,)
         The state at which the generator is evaluated. (i.e., the :math:`x` in
         :math:`\mathbb{E}[X(t + \Delta t) \mid X(t)=x]` and :math:`\mathrm{Cov}[X(t + \Delta t) \mid X(t)=x]`).
     dt : float
         Time interval.
-    a : Callable (d, ) -> (d, )
+    a : Callable (d,) -> (d,)
         SDE drift coefficient.
-    b : Callable (d, ) -> (d, w)
+    b : Callable (d,) -> (d, w)
         SDE dispersion coefficient.
     Qw : jnp.ndarray (w, w)
-        Symbolic spectral density of :math:`W`.
+        Spectral density of :math:`W`.
     order : int, default=3
         Order of TME. Must be >= 1.
-    gen_pow : Callable, default=generator_power
-        Callable function to compute powers of generators, Default is :py:func:`generator_power`, but you can
-        replace it with the naive implementation :py:func:`generator_power_naive` if something go wrong
-        with the default :py:func:`generator_power`.
 
     Returns
     -------
-    m : jnp.ndarray (d, )
+    m : jnp.ndarray (d,)
         TME approximation of mean :math:`\mathbb{E}[X(t + \Delta t) \mid X(t)=x]`.
     cov : jnp.ndarray (d, d)
         TME approximation of covariance :math:`\mathrm{Cov}[X(t + \Delta t) \mid X(t)=x]`.
+
+    Notes
+    -----
+    When `order = 1`, the TME mean and cov approximations are exactly the same with Euler--Maruyama.
     """
     # Give generator powers of phi^I and phi^II then evaluate them all
-    list_of_A_phi_i = gen_pow(phi_i, a=a, b=b, Qw=Qw, order=order)
-    list_of_A_phi_ii = gen_pow(phi_ii, a=a, b=b, Qw=Qw, order=order)
+    list_of_A_phi_i = generator_power(lambda z: z, a=a, b=b, Qw=Qw, order=order)
+    list_of_A_phi_ii = generator_power(lambda z: jnp.outer(z, z), a=a, b=b, Qw=Qw, order=order)
 
     A_phi_i_powers = [func(x) for func in list_of_A_phi_i]
     A_phi_ii_powers = [func(x) for func in list_of_A_phi_ii]
@@ -248,7 +221,7 @@ def mean_and_cov(x: jnp.ndarray, dt: float,
     # Give the mean approximation
     m = x
     for r in range(1, order + 1):
-        m += 1 / factorial(r) * A_phi_i_powers[r] * dt ** r
+        m = m + 1 / factorial(r) * A_phi_i_powers[r] * dt ** r
 
     # Give the cov approximation
     # r = 1
@@ -259,8 +232,8 @@ def mean_and_cov(x: jnp.ndarray, dt: float,
     for r in range(2, order + 1):
         coeff = A_phi_ii_powers[r]
         for k in range(r + 1):
-            coeff -= comb(r, k) * jnp.outer(A_phi_i_powers[k], A_phi_i_powers[r - k])
-        cov += 1 / factorial(r) * coeff * dt ** r
+            coeff = coeff - comb(r, k) * jnp.outer(A_phi_i_powers[k], A_phi_i_powers[r - k])
+        cov = cov + 1 / factorial(r) * coeff * dt ** r
 
     return m, cov
 
@@ -268,34 +241,29 @@ def mean_and_cov(x: jnp.ndarray, dt: float,
 def expectation(phi: Callable,
                 x: jnp.ndarray, dt: float,
                 a: Callable, b: Callable, Qw: jnp.ndarray,
-                order: int = 3,
-                gen_pow: Callable = generator_power) -> jnp.ndarray:
+                order: int = 3) -> jnp.ndarray:
     r"""TME approximation of expectation on any target function :math:`\phi`.
 
     For math details, see the docstring of :py:func:`tme.base_sympy.expectation`.
 
     Parameters
     ----------
-    phi : Callable (d, ) -> (...)
+    phi : Callable (d,) -> (...)
         Target function (must be sufficiently smooth depending on the order).
     x : jnp.ndarray (d, )
         The state at which the generator is evaluated (i.e., the :math:`x` in
         :math:`\mathbb{E}[\phi(X(t + \Delta t)) \mid X(t)=x]`).
     dt : float
         Time interval.
-    a : Callable (d, ) -> (d, )
+    a : Callable (d,) -> (d,)
         SDE drift coefficient.
-    b : Callable (d, ) -> (d, w)
+    b : Callable (d,) -> (d, w)
         SDE dispersion coefficient.
     Qw : jnp.ndarray (w, w)
-        Symbolic spectral density of :math:`W`.
+        Spectral density of :math:`W`.
     order : int
-        TME order. Must be >=0. For the relationship between the expansion order and SDE coefficient smoothness, see,
+        Order of TME. Must be >=0. For the relationship between the expansion order and SDE coefficient smoothness, see,
         Zhao (2021).
-    gen_pow : Callable, default=generator_power
-        Callable function to compute :math:`\mathcal{A}^p\phi`, where p is the order.
-        Default is :py:func:`generator_power`, but you can replace it with the naive implementation
-        :py:func:`generator_power_naive` if something go wrong with the default :py:func:`generator_power`.
 
     Returns
     -------
@@ -303,8 +271,7 @@ def expectation(phi: Callable,
         TME approximation of :math:`\mathbb{E}[\phi(X(t + \Delta t)) \mid X(t)]`. The output shape is consistence with
         the input shape of :code:`phi`.
     """
-    list_of_A_phi = gen_pow(phi, a=a, b=b, Qw=Qw, order=order)
-
+    list_of_A_phi = generator_power(phi, a=a, b=b, Qw=Qw, order=order)
     Aphi = phi(x)
     for r in range(1, order + 1):
         Aphi += 1 / factorial(r) * list_of_A_phi[r](x) * dt ** r

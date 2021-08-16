@@ -58,12 +58,11 @@ Authors
 Zheng Zhao, 2020, zz@zabemon.com, https://zz.zabemon.com
 """
 import warnings
-import sympy
-
-from sympy import binomial, simplify
-from sympy import Symbol, Expr, Matrix, MatrixSymbol, factorial, trace, zeros
-
 from typing import Tuple, List, Union, Callable
+
+import sympy
+from sympy import Symbol, Expr, Matrix, MatrixSymbol, factorial, trace, zeros
+from sympy import binomial, simplify
 
 __all__ = ['generator',
            'generator_vec',
@@ -84,7 +83,7 @@ def generator(phi: Expr,
         + \frac{1}{2}\, \sum^d_{i,j=1} \Gamma_{ij}(x) \, \frac{\partial^2 \phi}{\partial x_i \, \partial x_j}(x),
 
     where :math:`\phi\colon \mathbb{R}^d \to \mathbb{R}` must be sufficiently smooth function depending on the
-    expansion order, and :math:`\Gamma(x) = b(x) \, b(x)^\top`.
+    expansion order, and :math:`\Gamma(x) = b(x) \, Q_w \, b(x)^\top`.
 
     Parameters
     ----------
@@ -293,13 +292,11 @@ def mean_and_cov(x: MatrixSymbol,
 
     if callable(simp):
         return simp(m), simp(cov)
-    else:
-        if simp:
-            # TODO: simplify() unnecessarily takes too long time. Find a way to accelerate it.
-            warn_simp()
-            return simplify(m), simplify(cov)
-        else:
-            return m, cov
+    if simp:
+        # TODO: simplify() unnecessarily takes too long time. Find a way to accelerate it.
+        warn_simp()
+        return simplify(m), simplify(cov)
+    return m, cov
 
 
 def expectation(phi: Matrix,
@@ -354,14 +351,12 @@ def expectation(phi: Matrix,
 
     if callable(simp):
         return simp(expec)
-    else:
-        if simp:
-            # TODO: simplify() unnecessarily takes too long time. Find a way to accelerate it.
-            # TODO: simplify() throws weird errors in some rare cases.
-            warn_simp()
-            return simplify(expec)
-        else:
-            return expec
+    if simp:
+        # TODO: simplify() unnecessarily takes too long time. Find a way to accelerate it.
+        # TODO: simplify() throws weird errors in some rare cases.
+        warn_simp()
+        return simplify(expec)
+    return expec
 
 
 def warn_simp():

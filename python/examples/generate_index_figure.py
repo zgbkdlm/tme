@@ -1,20 +1,17 @@
 """
 Generate the animated figure in the index page.
 """
-import numpy as np
-import jax.numpy as jnp
-
-import tme.base_jax as tme
-
-import matplotlib.pyplot as plt
-
-from jax import jit
-from matplotlib.animation import FuncAnimation
 from typing import Tuple
 
+import jax.numpy as jnp
+import matplotlib.pyplot as plt
+import numpy as np
+import tme.base_jax as tme
+from jax import vmap
+from matplotlib.animation import FuncAnimation
+
 alp = 1.
-q = 0.1
-Qw = q * jnp.eye(1)
+Qw = 0.1    # Float Qw will be converted to a matrix in generator_power.
 
 
 def drift(x: jnp.ndarray) -> jnp.ndarray:
@@ -22,13 +19,11 @@ def drift(x: jnp.ndarray) -> jnp.ndarray:
                       x[0] * (alp - x[0] ** 2) - x[1]])
 
 
-# Keep in mind that we need the dispersion output a matrix
+# Keep in mind that the shapes of dispersion and Qw should be consistent.
 def dispersion(x: jnp.ndarray) -> jnp.ndarray:
-    return jnp.array([[0.],
-                      [x[0]]])
+    return jnp.array([0., x[0]])
 
 
-@jit
 def tme_m_cov(x: jnp.ndarray, dt: float) -> Tuple[jnp.ndarray, jnp.ndarray]:
     return tme.mean_and_cov(x=x, dt=dt,
                             a=drift, b=dispersion, Qw=Qw,
@@ -42,13 +37,8 @@ x = jnp.array([0., -1])
 num_time_steps = 100
 T = np.linspace(0.01, 1, num_time_steps)
 
-# Result containers
-m_results = np.zeros((num_time_steps, 2))
-cov_results = np.zeros((num_time_steps, 2, 2))
-
 # Compute for t=0.01, ..., 1
-for idx, t in enumerate(T):
-    m_results[idx], cov_results[idx] = tme_m_cov(x, t)
+m_results, cov_results = vmap(tme_m_cov, in_axes=[None, 0])(x, T)
 
 
 def anime_init():
