@@ -39,7 +39,6 @@ from jax import jvp, linearize, vmap
 
 __all__ = ['generator',
            'generator_power',
-           'generator_power_naive',
            'mean_and_cov',
            'expectation']
 
