@@ -22,6 +22,15 @@ To begin, you can start with the examples in :doc:`examples`.
 .. image:: figs/index_tme_duffing.gif
   :alt: TME-3 approximation of a Duffing-van der Pol equation
 
+JaX vs SymPy
+------------
+For some reasons we implemented TME in both SymPy and JaX. However, we would suggest to 
+use JaX as much as you can, due to two reasons: 1) the JaX implementaion is usually more efficient. 
+2) the simplication method `sympy.simplify()` in SymPy can be very slow and sometimes throws weird errors.
+
+However, the SymPy codes are written in an exactly-as-per-equation fashion, so the SymPy 
+version can be a good reference implementaion.
+
 License
 -------
 GPL v3 or later.

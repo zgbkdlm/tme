@@ -83,7 +83,7 @@ def generator(phi: Expr,
         + \frac{1}{2}\, \sum^d_{i,j=1} \Gamma_{ij}(x) \, \frac{\partial^2 \phi}{\partial x_i \, \partial x_j}(x),
 
     where :math:`\phi\colon \mathbb{R}^d \to \mathbb{R}` must be sufficiently smooth function depending on the
-    expansion order, and :math:`\Gamma(x) = b(x) \, b(x)^\top`.
+    expansion order, and :math:`\Gamma(x) = b(x) \, Q_w \, b(x)^\top`.
 
     Parameters
     ----------

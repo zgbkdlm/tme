@@ -11,7 +11,7 @@ from jax import vmap
 from matplotlib.animation import FuncAnimation
 
 alp = 1.
-Qw = 0.1
+Qw = 0.1    # Float Qw will be converted to a matrix in generator_power.
 
 
 def drift(x: jnp.ndarray) -> jnp.ndarray:
@@ -19,7 +19,7 @@ def drift(x: jnp.ndarray) -> jnp.ndarray:
                       x[0] * (alp - x[0] ** 2) - x[1]])
 
 
-# Keep in mind that we need the dispersion output a matrix
+# Keep in mind that the shapes of dispersion and Qw should be consistent.
 def dispersion(x: jnp.ndarray) -> jnp.ndarray:
     return jnp.array([0., x[0]])
 
@@ -36,10 +36,6 @@ x = jnp.array([0., -1])
 # Time instances
 num_time_steps = 100
 T = np.linspace(0.01, 1, num_time_steps)
-
-# Result containers
-m_results = np.zeros((num_time_steps, 2))
-cov_results = np.zeros((num_time_steps, 2, 2))
 
 # Compute for t=0.01, ..., 1
 m_results, cov_results = vmap(tme_m_cov, in_axes=[None, 0])(x, T)

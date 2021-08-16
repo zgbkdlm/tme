@@ -28,8 +28,8 @@ Adrien Corenflos and Zheng Zhao, 2021
 try:
     import jax as _
 except:
-    raise ValueError("By default the library is not packaged with JAX due to the need to support CPU and GPU users."
-                     "In order to use it, follow the instructions on https://github.com/google/jax#installation")
+    raise ImportError("By default the library is not packaged with JaX due to the need to support CPU and GPU users. "
+                      "In order to use it, follow the instructions on https://github.com/google/jax#installation.")
 
 from math import factorial, comb
 from typing import Callable, List, Tuple
@@ -54,10 +54,10 @@ def _format_noise(Qw):
             raise ValueError(f"If Qw is a matrix, it must be squared. {Qw.shape} was passed")
         return Qw
     else:
-        raise ValueError(f"Qw must have at most 2 dimensions. {ndim} were passed")
+        raise ValueError(f"Spectral density Qw must have at most 2 dimensions. {ndim} were passed")
 
 
-def _format_diffusion(bz):
+def _format_dispersion(bz):
     ndim = jnp.ndim(bz)
     if ndim == 0:
         return jnp.atleast_2d(bz)
@@ -66,7 +66,7 @@ def _format_diffusion(bz):
     if ndim == 2:
         return bz
     else:
-        raise ValueError(f"b(z) must have at most 2 dimensions. {ndim} were passed")
+        raise ValueError(f"Dispersion coefficient b(z) must have at most 2 dimensions. {ndim} were passed")
 
 
 def generator_power(phi: Callable, a: Callable, b: Callable, Qw: jnp.ndarray,
@@ -75,19 +75,17 @@ def generator_power(phi: Callable, a: Callable, b: Callable, Qw: jnp.ndarray,
 
     For math details, see the docstring of :py:func:`tme.base_sympy.generator_power`.
 
-    This is a better optimised implementation compared to :py:func:`generator_power_naive`.
-
     Parameters
     ----------
-    phi : Callable (d,) -> (m, n)
+    phi : Callable (d,) -> (...)
         Target function.
-    a : Callable (d,) -> (d, )
+    a : Callable (d,) -> (d,)
         SDE drift coefficient.
     b : Callable (d,) -> (d, w)
         SDE dispersion coefficient.
     Qw : jnp.ndarray (w, w)
-        Symbolic spectral density of :math:`W`. Please note that we only tested the code when
-        :code:`Qw` a constant matrix.
+        Spectral density of :math:`W`. Please note that you can feed :code:`Qw` as an array or a float, the function
+        will automatically rearrange it into a matrix.
     order : int, optional
         Number of generator iterations. Must be >=0. Default is 1, which corresponds to the standard infinitesimal
         generator.
@@ -97,12 +95,15 @@ def generator_power(phi: Callable, a: Callable, b: Callable, Qw: jnp.ndarray,
     List[Callable]
         List of generator functions in ascending power order. Formally, this function returns
         :math:`[\phi, \mathcal{A}\phi, \ldots, \mathcal{A}^p\phi]`, where :code:`p` is the order.
-        Each callable function in this list has exactly the save input-output shape
-        signature as phi:  (d,) -> (m, n).
+        Each callable function in this list has exactly the same input-output shape
+        signature as phi:  (d,) -> (...).
 
     Notes
     -----
     The implementation is due to Adrien Corenflos. Thank you for contributing this.
+
+    You may also find a naive implementation of infinitesimal generators and their iterations in the test file
+    :code:`./test/test_tme_jax.py`.
     """
 
     Qw = _format_noise(Qw)
@@ -113,7 +114,7 @@ def generator_power(phi: Callable, a: Callable, b: Callable, Qw: jnp.ndarray,
 
     def hess_prod_1(z, f):
         # This computes the Jacobian-vector product J[f](z) * b(z)
-        bz = _format_diffusion(b(z))
+        bz = _format_dispersion(b(z))
         _out, linearized_f = linearize(f, z)
         return vmap(linearized_f, in_axes=1, out_axes=0)(bz)
 
@@ -121,7 +122,7 @@ def generator_power(phi: Callable, a: Callable, b: Callable, Qw: jnp.ndarray,
         # This computes the double Jacobian-vector product J[z -> J[f](z) * b(z)](z) * b(z).T
         # This is an equivalent, but more efficient way, to computing the Hessian form b(z).T * H[f](z) * b(z)
         # TODO: Verify is linearize is faster than vectorized vjp here.
-        bz = _format_diffusion(b(z))
+        bz = _format_dispersion(b(z))
         temp = lambda zz: hess_prod_1(zz, f)
         _out, linearized_f = linearize(temp, z)
         return vmap(linearized_f, in_axes=0, out_axes=1)(bz.T)
@@ -152,26 +153,26 @@ def generator(phi: Callable, a: Callable, b: Callable, Qw: jnp.ndarray) -> Calla
         + \frac{1}{2}\, \sum^d_{i,j=1} \Gamma_{ij}(x) \, \frac{\partial^2 \phi}{\partial x_i \, \partial x_j}(x),
 
     where :math:`\phi\colon \mathbb{R}^d \to \mathbb{R}` must be sufficiently smooth function depending on the
-    expansion order, and :math:`\Gamma(x) = b(x) \, b(x)^\top`.
+    expansion order, and :math:`\Gamma(x) = b(x) \, Q_w \, b(x)^\top`.
 
     This is a helper function around :py:func:`generator_power`.
 
     Parameters
     ----------
-    phi : Callable (d,) -> (m, n)
+    phi : Callable (d,) -> (...)
         Target function.
     a : Callable (d,) -> (d,)
         SDE drift coefficient.
     b : Callable (d,) -> (d, w)
         SDE dispersion coefficient.
     Qw : jnp.ndarray (w, w)
-        Symbolic spectral density of :math:`W`. Please note that we only tested the code when
-        :code:`Qw` a constant matrix.
+        Spectral density of :math:`W`.
 
     Returns
     -------
-    Callable
-        :math:`x \mapsto (\mathcal{A}\phi)(x)`.
+    Callable (...)
+        A callable function which carries out :math:`x \mapsto \mathcal{A}\phi`. The output shape of this function
+        is the same as :code:`phi`.
     """
     return generator_power(phi, a, b, Qw, 1)[1]
 
@@ -195,7 +196,7 @@ def mean_and_cov(x: jnp.ndarray, dt: float,
     b : Callable (d,) -> (d, w)
         SDE dispersion coefficient.
     Qw : jnp.ndarray (w, w)
-        Symbolic spectral density of :math:`W`.
+        Spectral density of :math:`W`.
     order : int, default=3
         Order of TME. Must be >= 1.
 
@@ -205,6 +206,10 @@ def mean_and_cov(x: jnp.ndarray, dt: float,
         TME approximation of mean :math:`\mathbb{E}[X(t + \Delta t) \mid X(t)=x]`.
     cov : jnp.ndarray (d, d)
         TME approximation of covariance :math:`\mathrm{Cov}[X(t + \Delta t) \mid X(t)=x]`.
+
+    Notes
+    -----
+    When `order = 1`, the TME mean and cov approximations are exactly the same with Euler--Maruyama.
     """
     # Give generator powers of phi^I and phi^II then evaluate them all
     list_of_A_phi_i = generator_power(lambda z: z, a=a, b=b, Qw=Qw, order=order)
@@ -216,7 +221,7 @@ def mean_and_cov(x: jnp.ndarray, dt: float,
     # Give the mean approximation
     m = x
     for r in range(1, order + 1):
-        m += 1 / factorial(r) * A_phi_i_powers[r] * dt ** r
+        m = m + 1 / factorial(r) * A_phi_i_powers[r] * dt ** r
 
     # Give the cov approximation
     # r = 1
@@ -227,8 +232,8 @@ def mean_and_cov(x: jnp.ndarray, dt: float,
     for r in range(2, order + 1):
         coeff = A_phi_ii_powers[r]
         for k in range(r + 1):
-            coeff -= comb(r, k) * jnp.outer(A_phi_i_powers[k], A_phi_i_powers[r - k])
-        cov += 1 / factorial(r) * coeff * dt ** r
+            coeff = coeff - comb(r, k) * jnp.outer(A_phi_i_powers[k], A_phi_i_powers[r - k])
+        cov = cov + 1 / factorial(r) * coeff * dt ** r
 
     return m, cov
 
@@ -250,20 +255,21 @@ def expectation(phi: Callable,
         :math:`\mathbb{E}[\phi(X(t + \Delta t)) \mid X(t)=x]`).
     dt : float
         Time interval.
-    a : Callable (d,) -> (d, )
+    a : Callable (d,) -> (d,)
         SDE drift coefficient.
     b : Callable (d,) -> (d, w)
         SDE dispersion coefficient.
     Qw : jnp.ndarray (w, w)
-        Symbolic spectral density of :math:`W`.
+        Spectral density of :math:`W`.
     order : int
-        TME order. Must be >=0. For the relationship between the expansion order and SDE coefficient smoothness, see,
+        Order of TME. Must be >=0. For the relationship between the expansion order and SDE coefficient smoothness, see,
         Zhao (2021).
 
     Returns
     -------
-    jnp.ndarray (m, n)
-        TME approximation of :math:`\mathbb{E}[\phi(X(t + \Delta t)) \mid X(t)]`.
+    jnp.ndarray (...)
+        TME approximation of :math:`\mathbb{E}[\phi(X(t + \Delta t)) \mid X(t)]`. The output shape is consistence with
+        the input shape of :code:`phi`.
     """
     list_of_A_phi = generator_power(phi, a=a, b=b, Qw=Qw, order=order)
     Aphi = phi(x)

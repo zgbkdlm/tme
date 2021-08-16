@@ -37,9 +37,8 @@ def generator_power_naive(phi, a, b, Qw, order: int):
     gen_power = phi
 
     for _ in range(order):
-        def gen_power(z, f=gen_power):  # noqa
+        def gen_power(z, f=gen_power):  # noqa (zz: that's why you should start to use matlab xD)
             return generator(f, z, a, b, Qw)
-
         list_of_gen_powers.append(gen_power)
 
     return list_of_gen_powers
