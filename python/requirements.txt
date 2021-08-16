@@ -1,4 +1,8 @@
-sympy
-numpy
-jax
-jaxlib
+absl-py~=0.13.0
+flatbuffers~=2.0
+mpmath~=1.2.1
+numpy~=1.21.1
+opt-einsum~=3.3.0
+scipy~=1.7.1
+six~=1.16.0
+sympy~=1.8

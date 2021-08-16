@@ -11,7 +11,7 @@ Install via `pip install tme` or `python setup.py install`.
 ```python
 import tme.base_jax as tme
 import jax.numpy as jnp
-from jax import jit
+from jax import vmap
 
 # Define SDE coefficients.
 alp = 1.
@@ -26,17 +26,16 @@ def dispersion(x):
 
 
 # Jit the 3-order TME mean and cov approximation functions
-@jit
 def tme_m_cov(x, dt):
     return tme.mean_and_cov(x=x, dt=dt,
                             a=drift, b=dispersion, Qw=jnp.eye(1),
                             order=3)
 
-# Compute E[X(t) | X(0)=x0]
+# Compute E[X(t) | X(0)=x0] for several time steps
 x0 = jnp.array([0., -1])
-t = 1.
+ts = jnp.array([0.25, 0.5, 1.])
 
-m_t, cov_t = tme_m_cov(x0, t)
+m_t, cov_t = vmap(tme_m_cov, in_axes=[None, 0])(x0, ts)
 ```
 
 Inside folder `examples`, there are a few Jupyter notebooks showing how to use the TME method (in SymPy and JaX).
