@@ -25,6 +25,12 @@ Adrien Corenflos and Zheng Zhao, 2021
 """
 # TODO: The logic further down can be improved dramatically if we make diagonal noise specific logic.
 
+try:
+    import jax as _
+except:
+    raise ValueError("By default the library is not packaged with JAX due to the need to support CPU and GPU users."
+                     "In order to use it, follow the instructions on https://github.com/google/jax#installation")
+
 from math import factorial, comb
 from typing import Callable, List, Tuple
 

@@ -1,2 +1,0 @@
--f https://storage.googleapis.com/jax-releases/jax_releases.html
-jax[gpu]~=0.2.16
