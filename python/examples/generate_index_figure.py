@@ -1,17 +1,14 @@
 """
 Generate the animated figure in the index page.
 """
-import numpy as np
-import jax.numpy as jnp
-
-import tme.base_jax as tme
-
-from jax import vmap
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
 from typing import Tuple
 
-
+import jax.numpy as jnp
+import matplotlib.pyplot as plt
+import numpy as np
+import tme.base_jax as tme
+from jax import vmap
+from matplotlib.animation import FuncAnimation
 
 alp = 1.
 Qw = 0.1
