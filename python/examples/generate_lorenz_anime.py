@@ -96,9 +96,9 @@ def abs_err(x1, x2):
 abs_err_tme_2 = abs_err(true_sample[::factor], sample_tme_2)
 abs_err_tme_3 = abs_err(true_sample[::factor], sample_tme_3)
 abs_err_em = abs_err(true_sample[::factor], sample_em)
-print(f'Cumulative abs error of TME order 2: {abs_err_tme_2}')
-print(f'Cumulative abs error of TME order 3: {abs_err_tme_3}')
-print(f'Cumulative abs error of EM: {abs_err_em}')
+print(f'Average abs error of TME order 2: {abs_err_tme_2}')
+print(f'Average abs error of TME order 3: {abs_err_tme_3}')
+print(f'Average abs error of EM: {abs_err_em}')
 
 
 def test_time(cov_fun, dts, dws, n_iter=10):
