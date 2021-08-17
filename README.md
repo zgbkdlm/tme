@@ -5,15 +5,17 @@
 
 This repository presents Python (SymPy and JaX) and Matlab implementations of TME. 
 
-TME is an analytical method for estimating statistical quantities (e.g., mean, covariance, moments, or any non-linear expectation) of solutions of stochastic differential equations.
+TME is an analytical method for estimating statistical quantities (e.g., mean, covariance, moments, or any non-linear expectation) of solutions of stochastic differential equations. In particular, if we use the TME method to approximate mean and covariance, we can then use the method to discretise solutions of SDEs.
 
 ![TME-3 mean approximation for a Duffing-van der Pol equation](docs/source/figs/index_tme_duffing.gif)
+![TME- discretisation of a stochastic Lorenz model](docs/source/figs/lorenz_anime.gif)
 
 Please find the documentation of this software at https://tme.readthedocs.io.
 
 # Python example
 
-Install via `pip install tme` or `python setup.py install`
+Install via `pip install tme` or `python setup.py install` (Please note that if you would like to use JaX, please 
+install `jax` by yourself beforehand).
 
 ```python
 import tme.base_jax as tme
@@ -28,8 +30,7 @@ def drift(x):
 
 
 def dispersion(x):
-    return jnp.array([[0.],
-                      [x[0]]])
+    return jnp.array([0, x[0]])
 
 
 # Jit the 3-order TME mean and cov approximation functions

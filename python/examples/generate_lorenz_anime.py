@@ -184,5 +184,6 @@ ani = FuncAnimation(fig, anime_func,
                     frames=range(0, len(dts_small), 1), init_func=anime_init, interval=50,
                     repeat=False)
 fig.tight_layout()
-fig.subplots_adjust(top=0.908, bottom=0)
+fig.subplots_adjust(top=0.908, bottom=0.01)
+# plt.show()
 ani.save('lorenz_anime.gif')

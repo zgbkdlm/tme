@@ -19,6 +19,8 @@ The source codes are availabe at the git repository `<https://github.com/zgbkdlm
 
 To begin, you can start with the examples in :doc:`examples`.
 
+.. image:: figs/lorenz_anime.gif
+  :alt: TME discretisation of a sotchastic Lorenz model
 .. image:: figs/index_tme_duffing.gif
   :alt: TME-3 approximation of a Duffing-van der Pol equation
 
