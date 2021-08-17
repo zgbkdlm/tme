@@ -39,6 +39,7 @@ def generator_power_naive(phi, a, b, Qw, order: int):
     for _ in range(order):
         def gen_power(z, f=gen_power):  # noqa (zz: that's why you should start to use matlab xD)
             return generator(f, z, a, b, Qw)
+
         list_of_gen_powers.append(gen_power)
 
     return list_of_gen_powers
@@ -147,6 +148,48 @@ class TestJaxVsSymPy(unittest.TestCase):
             expec_result_jax = jitted_expec(x)
 
             npt.assert_allclose(expec_result_jax, np.squeeze(expec_result_sympy))
+
+
+class TestvsEulerMaruyama(unittest.TestCase):
+    """
+    TME with order 1 should be consistent with Euler--Maruyama on approximating mean
+    and covariance
+    """
+
+    def test_vs_em(self):
+
+        sigma = 10.
+        rho = 28.
+        beta = 8 / 3
+        Qw = jnp.eye(3)
+
+        def drift(u):
+            return jnp.array([sigma * (u[1] - u[0]),
+                              u[0] * (rho - u[2]) - u[1],
+                              u[0] * u[1] - beta * u[2]])
+
+        bb = 0.15 * jnp.eye(3)
+
+        def dispersion(u):
+            return bb
+
+        @jit
+        def tme_m_cov(u, dt):
+            return tme_jax.mean_and_cov(x=u, dt=dt,
+                                        a=drift, b=dispersion, Qw=Qw, order=1)
+
+        @jit
+        def em_m_cov(u, dt):
+            return u + drift(u) * dt, dispersion(u) @ Qw @ dispersion(u).T * dt
+
+        x = jnp.array(np.random.randn(3))
+        dt = 1.
+
+        tme_m, tme_cov = tme_m_cov(x, dt)
+        em_m, em_cov = em_m_cov(x, dt)
+
+        npt.assert_allclose(tme_m, em_m, atol=1e-12)
+        npt.assert_allclose(tme_cov, em_cov, atol=1e-12)
 
 
 class TestAgainstLinearSDE():
