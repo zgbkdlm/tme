@@ -1,6 +1,10 @@
 # Changelog
 
-0.1.3 (working release)
+0.1.4 (working release)
+-----------------------
+No changes yet.
+
+0.1.3 (August 17, 2021)
 -----------------------
 1. Added a new Lorenz example as well as some documentations.
 
