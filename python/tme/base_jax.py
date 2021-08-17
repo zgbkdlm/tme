@@ -31,7 +31,8 @@ except:
     raise ImportError("By default the library is not packaged with JaX due to the need to support CPU and GPU users. "
                       "In order to use it, follow the instructions on https://github.com/google/jax#installation.")
 
-from math import factorial, comb
+import math
+from math import factorial
 from typing import Callable, List, Tuple
 
 import jax.numpy as jnp
@@ -41,32 +42,6 @@ __all__ = ['generator',
            'generator_power',
            'mean_and_cov',
            'expectation']
-
-
-def _format_noise(Qw):
-    ndim = jnp.ndim(Qw)
-    if ndim == 0:
-        return jnp.atleast_2d(Qw)
-    if ndim == 1:
-        return jnp.diag(Qw)
-    if ndim == 2:
-        if Qw.shape[0] != Qw.shape[1]:
-            raise ValueError(f"If Qw is a matrix, it must be squared. {Qw.shape} was passed")
-        return Qw
-    else:
-        raise ValueError(f"Spectral density Qw must have at most 2 dimensions. {ndim} were passed")
-
-
-def _format_dispersion(bz):
-    ndim = jnp.ndim(bz)
-    if ndim == 0:
-        return jnp.atleast_2d(bz)
-    if ndim == 1:
-        return jnp.expand_dims(bz, 1)
-    if ndim == 2:
-        return bz
-    else:
-        raise ValueError(f"Dispersion coefficient b(z) must have at most 2 dimensions. {ndim} were passed")
 
 
 def generator_power(phi: Callable, a: Callable, b: Callable, Qw: jnp.ndarray,
@@ -232,7 +207,7 @@ def mean_and_cov(x: jnp.ndarray, dt: float,
     for r in range(2, order + 1):
         coeff = A_phi_ii_powers[r]
         for k in range(r + 1):
-            coeff = coeff - comb(r, k) * jnp.outer(A_phi_i_powers[k], A_phi_i_powers[r - k])
+            coeff = coeff - _comb(r, k) * jnp.outer(A_phi_i_powers[k], A_phi_i_powers[r - k])
         cov = cov + 1 / factorial(r) * coeff * dt ** r
 
     return m, cov
@@ -277,3 +252,46 @@ def expectation(phi: Callable,
         Aphi += 1 / factorial(r) * list_of_A_phi[r](x) * dt ** r
 
     return Aphi
+
+
+def _comb(n, k):
+    try:
+        return math.comb(n, k)
+    except AttributeError:  # Python version < 3.8 does not have math.comb
+        return _manual_comb(n, k)
+
+
+def _manual_comb(n, k):
+    if k > n // 2:
+        return _manual_comb(n, n - k)
+    if k < 0:
+        return 0
+    if k == 0:
+        return 1
+    return _manual_comb(n - 1, k - 1) + _manual_comb(n - 1, k)
+
+
+def _format_noise(Qw):
+    ndim = jnp.ndim(Qw)
+    if ndim == 0:
+        return jnp.atleast_2d(Qw)
+    if ndim == 1:
+        return jnp.diag(Qw)
+    if ndim == 2:
+        if Qw.shape[0] != Qw.shape[1]:
+            raise ValueError(f"If Qw is a matrix, it must be squared. {Qw.shape} was passed")
+        return Qw
+    else:
+        raise ValueError(f"Spectral density Qw must have at most 2 dimensions. {ndim} were passed")
+
+
+def _format_dispersion(bz):
+    ndim = jnp.ndim(bz)
+    if ndim == 0:
+        return jnp.atleast_2d(bz)
+    if ndim == 1:
+        return jnp.expand_dims(bz, 1)
+    if ndim == 2:
+        return bz
+    else:
+        raise ValueError(f"Dispersion coefficient b(z) must have at most 2 dimensions. {ndim} were passed")
