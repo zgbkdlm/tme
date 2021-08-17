@@ -4,7 +4,8 @@ Please see the documentation of the package in https://tme.readthedocs.io.
 
 # Install
 
-Install via `pip install tme` or `python setup.py install`.
+Install via `pip install tme` or `python setup.py install` (Please note that if you would like to use JaX, please 
+install `jax` by yourself beforehand).
 
 # Examples
 
@@ -21,8 +22,7 @@ def drift(x):
 
 
 def dispersion(x):
-    return jnp.array([[0.],
-                      [x[0]]])
+    return jnp.array([0., x[0]])
 
 
 # Jit the 3-order TME mean and cov approximation functions

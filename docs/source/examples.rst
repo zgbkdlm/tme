@@ -26,6 +26,8 @@ See, `Jupyter Notebook (JaX) for Model 1 <https://github.com/zgbkdlm/tme/blob/ma
 
 See, `Jupyter Notebook (JaX) for Model 2 <https://github.com/zgbkdlm/tme/blob/main/python/examples/nonlinear_multidim_jax.ipynb>`_.
 
+See, `Jupyter Notebook (JaX) for a stochastic Lorenz model <https://github.com/zgbkdlm/tme/blob/main/python/examples/tme_lorenz_jax.ipynb>`_.
+
 In Matlab
 ---------
 

@@ -40,30 +40,31 @@ T = np.linspace(0.01, 1, num_time_steps)
 # Compute for t=0.01, ..., 1
 m_results, cov_results = vmap(tme_m_cov, in_axes=[None, 0])(x, T)
 
+fig = plt.figure()
 
-def anime_init():
-    plt.plot(T[:1], m_results[:1, 0],
+l1, = plt.plot(T[0], m_results[0, 0],
              linewidth=3, c='tab:blue',
              label='TME-3 X_1(t)')
-    plt.plot(T[:1], m_results[:1, 1],
+l2, = plt.plot(T[0], m_results[0, 1],
              linewidth=3, c='tab:orange',
              label='TME-3 X_2(t)')
-    plt.xlim(0, 1)
-    plt.legend(loc='upper right')
-    plt.title('TME-3 approximation of mean E[X(t) | X(0)=x0] \n from a Duffing-van der Pol equation.')
-    plt.xlabel('t')
-    plt.ylabel('E[X(t) | X(0)=x0]')
+
+plt.xlim(0, 1)
+plt.legend(loc='upper right')
+plt.title('TME-3 approximation of mean E[X(t) | X(0)=x0] \n from a Duffing-van der Pol equation.')
+plt.xlabel('t')
+plt.ylabel('E[X(t) | X(0)=x0]')
+
+
+def anime_init():
+    l1.set_data(T[0], m_results[0, 0])
+    l2.set_data(T[0], m_results[0, 1])
 
 
 def anime_func(frame):
-    plt.plot(T[:frame], m_results[:frame, 0],
-             linewidth=3, c='tab:blue', label='')
-    plt.plot(T[:frame], m_results[:frame, 1],
-             linewidth=3, c='tab:orange', label='')
-    plt.xlim(0, 1)
+    l1.set_data(T[:frame], m_results[:frame, 0])
+    l2.set_data(T[:frame], m_results[:frame, 1])
 
-
-fig = plt.figure()
 
 ani = FuncAnimation(fig, anime_func,
                     frames=num_time_steps, init_func=anime_init, interval=20,
