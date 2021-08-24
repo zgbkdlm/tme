@@ -68,7 +68,7 @@ end
 if simp
     a = simplify(a);
 end
-fprintf('Mean estiamte gave. \n');
+fprintf('Symbolic TME mean approximation gave. \n');
 
 %% Covariance
 % Pre-compute generator powers
@@ -87,6 +87,6 @@ end
 if simp
     Sigma = simplify(Sigma);
 end
-fprintf('Covariance estiamte gave. \n');
+fprintf('Symbolic TME covariance approximation gave. \n');
 
 end
