@@ -74,10 +74,9 @@ Note that the thesis is not published yet (will be published around the end the 
 	journal = {IEEE Transactions on Automatic Control},
 	author = {Zheng Zhao and Toni Karvonen and Roland Hostettler and and Simo S\"{a}rkk\"{a}},
 	volume = {66},
-	number = {12},
-	pages = {},
-	year = {2021},
-	note = {In press}
+	number = {9},
+	pages = {4460--4467},
+	year = {2021}
 }
 ```
 

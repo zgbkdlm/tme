@@ -39,7 +39,7 @@ PhD thesis, Aalto University. 2021.
 
 Zheng Zhao, Toni Karvonen, Roland Hostettler, and Simo Särkkä.
 Taylor Moment Expansion for Continuous-Discrete Gaussian Filtering.
-IEEE Transactions on Automatic Control, 2020.
+IEEE Transactions on Automatic Control, 66(9):4460-4467, 2021.
 
 Didier Dacunha-Castelle and Danielle Florens-Zmirou.
 Estimation of the coefficients of a diffusion from discrete observations.

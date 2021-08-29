@@ -14,4 +14,4 @@ The implementations and math in the docstrings are based on Zhao (2021).
 
 - Zheng Zhao. State-space deep Gaussian processes. PhD thesis, Aalto University, 2021. `[PDF] <https://github.com/zgbkdlm/dissertation>`_
 
-- Zheng Zhao, Toni Karvonen, Roland Hostettler, and Simo Särkkä. Taylor moment expansion for continuous-discrete Gaussian filtering. IEEE Transactions on Automatic Control, 2020. `[DOI] <https://doi.org/10.1109/TAC.2020.3047367>`_
+- Zheng Zhao, Toni Karvonen, Roland Hostettler, and Simo Särkkä. Taylor moment expansion for continuous-discrete Gaussian filtering. IEEE Transactions on Automatic Control, 66(9):4460-4467, 2021. `[DOI] <https://doi.org/10.1109/TAC.2020.3047367>`_
