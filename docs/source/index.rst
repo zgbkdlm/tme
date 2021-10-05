@@ -18,6 +18,8 @@ This site consists of the documentation of the implementations of TME in Python 
 
 The source codes are availabe at the git repository `<https://github.com/zgbkdlm/tme>`_.
 
+The implementations and math in the docstrings are based on Zhao (2021).
+
 To begin, you can start with the examples in :doc:`examples`.
 
 .. image:: figs/lorenz_anime.gif

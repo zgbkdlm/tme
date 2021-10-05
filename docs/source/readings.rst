@@ -5,8 +5,6 @@ The TME method is due to Dacunha-Castelle and Florens-Zmirou (1986); Florens-Zmi
 
 It is also shown by Zhao et al. (2020) and Zhao (2021) that TME can be used in Gaussian filtering and smoothering, as well as deep GP regression problems.
 
-The implementations and math in the docstrings are based on Zhao (2021).
-
 
 - Didier Dacunha-Castelle and Danielle Florens-Zmirou. Estimation of the coefficients of a diffusion from discrete observations. Stochastics, 19(4):263–284, 1986.
 
