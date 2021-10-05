@@ -4,6 +4,8 @@
 -----------------------
 1. Changed the verbose printing of TME matlab.
 
+2. Update docs by adding TME filters and smoothers.
+
 ...
 
 0.1.3 (August 17, 2021)

@@ -53,6 +53,10 @@ More examples can be found in `./python/examples`
 
 See, folder `./matlab`. 
 
+# TME filters and smoothers for SDE inference
+
+See, https://github.com/zgbkdlm/tmefs for the implementation in Python Jax, or `./matlab` for in Matlab.
+
 # How to cite?
 
 Please cite the following paper/thesis.
