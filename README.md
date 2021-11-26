@@ -65,7 +65,7 @@ Note that the thesis is not published yet (will be published around the end the 
 
 ```
 @phdthesis{ZhaoZheng2021,
-	title = {State-space deep Gaussian processes},
+	title = {State-space deep Gaussian processes with applications},
 	author = {Zheng Zhao},
 	school = {Aalto University},
 	year = {2021},
