@@ -8,7 +8,7 @@
 
 3. Change the function signatures `a` and `b` to `drift` and `dispersion` to be more explicit.
 
-4. Remove the spectral density `Qw`. This `Qw` seems to be useful in some isolated cases only. If one wants to specify `Qw`, please put its Cholesky decomposition into the dispersion function. 
+4. Remove the spectral density `Qw`. This `Qw` seems to be useful in some isolated cases only. If one wants to specify `Qw`, please put its Cholesky decomposition into the dispersion function. Note that this change does not affect the Matlab implementation.
 
 5. Some code simplifications.
 
