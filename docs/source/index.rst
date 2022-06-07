@@ -12,7 +12,7 @@ Taylor moment expansion in Python and Matlab
    filter_smoother
    readings
 
-Taylor moment expansion (TME) is a method for approximating propogations (in expectations) of stochastic differential equations (SDEs) solutions through (non-linear) functions. More formally, consider :math:`X(t)` be the solution of an SDE, then the TME method is able to approximate :math:`\mathbb{E}[\phi(X(t)) \mid X(s)]` for any target function :math:`\phi` of interest and times :math:`t<s`. This method is originally due to Dacunha-Castelle and Florens-Zmirou (1986) and Florens-Zmirou (1989). A more modern interpretation of the method is found in Zhao (2021).
+Taylor moment expansion (TME) is a method for approximating propogations (in expectations) of stochastic differential equations (SDEs) solutions through (non-linear) functions. More formally, consider :math:`X` be the solution of an SDE, then the TME method is able to approximate :math:`\mathbb{E}[\phi(X(t)) \mid X(s)]` for any target function :math:`\phi` of interest and times :math:`t<s`. This method is originally due to Dacunha-Castelle and Florens-Zmirou (1986) and Florens-Zmirou (1989). A more modern interpretation of the method is found in Zhao (2021).
 
 This site consists of the documentation of the implementations of TME in Python and Matlab, (while we focus on Python a bit more). In addition, the Matlab implementation features a few examples of TME-based Gaussian filters and smoothers.
 

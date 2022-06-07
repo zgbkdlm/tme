@@ -106,8 +106,7 @@ class TestJaxVsSymPy(unittest.TestCase):
         dt = 0.01
 
         for order in [2, 3, 4]:
-            # TODO: SymPy simplify() throws weird "__new__ missing" error for order >= 4.
-            m_sympy, cov_sympy = tme_sp.mean_and_cov(self.sym_x, self.a, self.b, self.sym_dt, order, simp=False)
+            m_sympy, cov_sympy = tme_sp.mean_and_cov(self.sym_x, self.a, self.b, self.sym_dt, order, simp=True)
             m_sympy_func = sp.lambdify([self.sym_x, self.sym_dt], m_sympy, 'numpy')
             cov_sympy_func = sp.lambdify([self.sym_x, self.sym_dt], cov_sympy, 'numpy')
 

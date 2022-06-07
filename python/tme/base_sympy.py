@@ -231,12 +231,8 @@ def mean_and_cov(x: MatrixSymbol, drift: Matrix, dispersion: Matrix, dt: Symbol,
 
         .. warning::
 
-            SymPy does not well support symbolic simplifications. The method :code:`sympy.simplify` can be
-            very slow, and sometimes even give unnecessary errors. Moreover, as TME often involves complicated
-            symbolic expressions, this method can really take long time!
-            However, the problem does not appear in our Matlab or Mathematica implementations which simplify
-            very fast and efficient.
-            SymPy explained `this issue here <https://docs.sympy.org/latest/tutorial/simplification.html>`_.
+            The method :code:`sympy.simplify` can be unnecessarily slow when the system is complicated,
+            see <https://docs.sympy.org/latest/tutorial/simplification.html>`_.
 
     Returns
     -------
@@ -272,7 +268,6 @@ def mean_and_cov(x: MatrixSymbol, drift: Matrix, dispersion: Matrix, dt: Symbol,
     if callable(simp):
         return simp(m), simp(cov)
     if simp:
-        # TODO: simplify() unnecessarily takes too long time. Find a way to accelerate it.
         warn_simp()
         return simplify(m), simplify(cov)
     return m, cov
@@ -326,12 +321,10 @@ def expectation(phi: Matrix, x: MatrixSymbol, drift: Matrix, dispersion: Matrix,
     if callable(simp):
         return simp(expec)
     if simp:
-        # TODO: simplify() unnecessarily takes too long time. Find a way to accelerate it.
-        # TODO: simplify() throws weird errors in some rare cases.
         warn_simp()
         return simplify(expec)
     return expec
 
 
 def warn_simp():
-    warnings.warn('The simplification method sympy.simplify can be slow in some cases.')
+    warnings.warn('The simplification method sympy.simplify may be slow in some cases.')
