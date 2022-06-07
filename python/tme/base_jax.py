@@ -253,20 +253,6 @@ def _manual_comb(n, k):
     return _manual_comb(n - 1, k - 1) + _manual_comb(n - 1, k)
 
 
-def _format_noise(Qw):
-    ndim = jnp.ndim(Qw)
-    if ndim == 0:
-        return jnp.atleast_2d(Qw)
-    if ndim == 1:
-        return jnp.diag(Qw)
-    if ndim == 2:
-        if Qw.shape[0] != Qw.shape[1]:
-            raise ValueError(f"If Qw is a matrix, it must be squared. {Qw.shape} was passed")
-        return Qw
-    else:
-        raise ValueError(f"Spectral density Qw must have at most 2 dimensions. {ndim} were passed")
-
-
 def _format_dispersion(bz):
     ndim = jnp.ndim(bz)
     if ndim == 0:

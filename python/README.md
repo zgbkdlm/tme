@@ -4,7 +4,7 @@ Please see the documentation of the package in https://tme.readthedocs.io.
 
 # Install
 
-Install via `pip install tme` or `python setup.py install` (Please note that if you would like to use JaX, please 
+Install via `pip install tme` or `python setup.py install` (Please note that if you would like to use JaX, please
 install `jax` by yourself beforehand).
 
 # Examples
@@ -16,6 +16,8 @@ from jax import jit
 
 # Define SDE coefficients.
 alp = 1.
+
+
 def drift(x):
     return jnp.array([x[1],
                       x[0] * (alp - x[0] ** 2) - x[1]])
@@ -29,6 +31,7 @@ def dispersion(x):
 @jit
 def tme_m_cov(x, dt):
     return tme.mean_and_cov(x, dt, drift, dispersion, order=3)
+
 
 # Compute E[X(t) | X(0)=x0]
 x0 = jnp.array([0., -1])

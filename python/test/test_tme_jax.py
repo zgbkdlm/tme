@@ -151,7 +151,6 @@ class TestvsEulerMaruyama(unittest.TestCase):
     """
 
     def test_vs_em(self):
-
         sigma = 10.
         rho = 28.
         beta = 8 / 3
