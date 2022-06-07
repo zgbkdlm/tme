@@ -130,7 +130,8 @@ l3, = ax.plot3D(sample_tme_3[1, 0], sample_tme_3[1, 1], sample_tme_3[1, 2],
                 c='#43a2ca',
                 label=f'TME-3 sample |abs. error {abs_err_tme_3:.1f}| |average runtime {time_tme_3:.1E} s|', zorder=1)
 l4, = ax.plot3D(sample_em[1, 0], sample_em[1, 1], sample_em[1, 2],
-                c='#0868ac', label=f'EM sample |abs. error {abs_err_em:.1f}| |average runtime {time_em:.1E} s|', zorder=-1)
+                c='#0868ac', label=f'EM sample |abs. error {abs_err_em:.1f}| |average runtime {time_em:.1E} s|',
+                zorder=-1)
 
 ax.legend(loc='upper left')
 ax.set_title('TME-3 vs Euler-Maruyama (EM) on discretising \n a stochastic Lorenz model')
