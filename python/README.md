@@ -16,6 +16,8 @@ from jax import vmap
 
 # Define SDE coefficients.
 alp = 1.
+
+
 def drift(x):
     return jnp.array([x[1],
                       x[0] * (alp - x[0] ** 2) - x[1]])
@@ -27,9 +29,8 @@ def dispersion(x):
 
 # Jit the 3-order TME mean and cov approximation functions
 def tme_m_cov(x, dt):
-    return tme.mean_and_cov(x=x, dt=dt,
-                            a=drift, b=dispersion, Qw=jnp.eye(1),
-                            order=3)
+    return tme.mean_and_cov(x=x, dt=dt, drift=drift, dispersion=dispersion, Qw=jnp.eye(1), order=3)
+
 
 # Compute E[X(t) | X(0)=x0] for several time steps
 x0 = jnp.array([0., -1])

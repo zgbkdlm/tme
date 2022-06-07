@@ -8,7 +8,7 @@ TME applies on stochastic differential equations (SDEs) of the form
         d X(t) = a(X(t))dt + b(X(t)) dW(t),
 
     where :math:`X \colon \mathbb{T} \to \mathbb{R}^d`, and :math:`W\colon \mathbb{T} \to \mathrm{R}^w` is a Wiener
-    process having spectral density :math:`Q_w \in \mathbb{R}^{w \times w}`.
+    process having the unit spectral density.
     Functions :math:`a \colon \mathbb{R}^d \to \mathbb{R}^d`
     and :math:`b \colon \mathbb{R}^d \to \mathbb{R}^{d \times w}` stand for the drift and dispersion coefficients,
     respectively. :math:`\mathbb{T} = \lbrace t\in\mathbb{R}\colon t\geq t_0 \rbrace` stands for a temporal domain.
@@ -72,9 +72,7 @@ __all__ = ['generator',
            'expectation']
 
 
-def generator(phi: Expr,
-              x: MatrixSymbol,
-              a: Matrix, b: Matrix, Qw: Matrix) -> Expr:
+def generator(phi: Expr, x: MatrixSymbol, drift: Matrix, dispersion: Matrix) -> Expr:
     r"""Infinitesimal generator for diffusion processes in Ito's SDE constructions.
 
     .. math::
@@ -83,7 +81,7 @@ def generator(phi: Expr,
         + \frac{1}{2}\, \sum^d_{i,j=1} \Gamma_{ij}(x) \, \frac{\partial^2 \phi}{\partial x_i \, \partial x_j}(x),
 
     where :math:`\phi\colon \mathbb{R}^d \to \mathbb{R}` must be sufficiently smooth function depending on the
-    expansion order, and :math:`\Gamma(x) = b(x) \, Q_w \, b(x)^\top`.
+    expansion order, and :math:`\Gamma(x) = b(x) \, b(x)^\top`.
 
     Parameters
     ----------
@@ -91,25 +89,21 @@ def generator(phi: Expr,
         Scalar-valued target function.
     x : MatrixSymbol
         Symbolic state vector.
-    a : Matrix
+    drift : Matrix
         Symbolic drift coefficient.
-    b : Matrix
+    dispersion : Matrix
         Symbolic dispersion coefficient.
-    Qw : Matrix
-        Symbolic spectral density of :math:`W`.
 
     Returns
     -------
     Expr
         Symbolic :math:`(\mathcal{A}\phi)(x)`.
     """
-    return Matrix([phi]).jacobian(x).dot(a) \
-           + 0.5 * trace(Matrix([phi]).jacobian(x).jacobian(x) * (b * Qw * b.T))
+    return Matrix([phi]).jacobian(x).dot(drift) \
+           + 0.5 * trace(Matrix([phi]).jacobian(x).jacobian(x) * (dispersion * dispersion.T))
 
 
-def generator_vec(phi_vec: Matrix,
-                  x: MatrixSymbol,
-                  a: Matrix, b: Matrix, Qw: Matrix) -> Matrix:
+def generator_vec(phi_vec: Matrix, x: MatrixSymbol, drift: Matrix, dispersion: Matrix) -> Matrix:
     r"""Infinitesimal generator for vector-valued :math:`\phi\colon \mathbb{R}^d\to\mathbb{R}^{m}`.
 
     Parameters
@@ -118,12 +112,10 @@ def generator_vec(phi_vec: Matrix,
         Vector-valued target function.
     x : MatrixSymbol
         Symbolic state vector.
-    a : Matrix
+    drift : Matrix
         Symbolic drift coefficient.
-    b : Matrix
+    dispersion : Matrix
         Symbolic dispersion coefficient.
-    Qw : Matrix
-        Symbolic spectral density of :math:`W`.
 
     Returns
     -------
@@ -138,13 +130,11 @@ def generator_vec(phi_vec: Matrix,
     g = zeros(phi_vec.shape[0], phi_vec.shape[1])
 
     for i, row in enumerate(phi_vec):
-        g[i] = generator(row, x, a, b, Qw)
+        g[i] = generator(row, x, drift, dispersion)
     return g
 
 
-def generator_mat(phi_mat: Matrix,
-                  x: MatrixSymbol,
-                  a: Matrix, b: Matrix, Qw: Matrix) -> Matrix:
+def generator_mat(phi_mat: Matrix, x: MatrixSymbol, drift: Matrix, dispersion: Matrix) -> Matrix:
     r"""Infinitesimal generator for matrix-valued :math:`\phi\colon \mathbb{R}^d\to\mathbb{R}^{m\times n}`.
 
     This function exactly corresponds to the operator :math:`\overline{\mathcal{A}}` in Zhao (2021).
@@ -155,12 +145,10 @@ def generator_mat(phi_mat: Matrix,
         Matrix-valued target function.
     x : MatrixSymbol
         Symbolic state vector.
-    a : Matrix
+    drift : Matrix
         Symbolic drift coefficient.
-    b : Matrix
+    dispersion : Matrix
         Symbolic dispersion coefficient.
-    Qw : Matrix
-        Symbolic spectral density of :math:`W`.
 
     Returns
     -------
@@ -171,14 +159,11 @@ def generator_mat(phi_mat: Matrix,
 
     for i in range(phi_mat.rows):
         for j in range(phi_mat.cols):
-            g[i, j] = generator(phi_mat[i, j], x, a, b, Qw)
+            g[i, j] = generator(phi_mat[i, j], x, drift, dispersion)
     return g
 
 
-def generator_power(phi: Matrix,
-                    x: MatrixSymbol,
-                    a: Matrix, b: Matrix, Qw: Matrix,
-                    p: int) -> List[Matrix]:
+def generator_power(phi: Matrix, x: MatrixSymbol, drift: Matrix, dispersion: Matrix, p: int) -> List[Matrix]:
     r"""Iterations/power of infinitesimal generator for scalar/vector/matrix-valued :math:`\phi`.
 
     .. math::
@@ -193,12 +178,10 @@ def generator_power(phi: Matrix,
         Scalar/vector/Matrix-valued target function.
     x : MatrixSymbol
         Symbolic state vector.
-    a : Matrix
+    drift : Matrix
         Symbolic drift coefficient.
-    b : Matrix
+    dispersion : Matrix
         Symbolic dispersion coefficient.
-    Qw : Matrix
-        Symbolic spectral density of :math:`W`.
     p : int
         Power/number of iterations.
 
@@ -211,15 +194,13 @@ def generator_power(phi: Matrix,
     generators = [phi]
 
     for i in range(1, p + 1):
-        phi = generator_mat(phi, x, a, b, Qw)
+        phi = generator_mat(phi, x, drift, dispersion)
         generators.append(phi)
     return generators
 
 
-def mean_and_cov(x: MatrixSymbol,
-                 a: Matrix, b: Matrix, Qw: Matrix,
-                 dt: Symbol,
-                 order: int = 3, simp: Union[bool, Callable] = True) -> Tuple[Matrix, Matrix]:
+def mean_and_cov(x: MatrixSymbol, drift: Matrix, dispersion: Matrix, dt: Symbol, order: int = 3,
+                 simp: Union[bool, Callable] = True) -> Tuple[Matrix, Matrix]:
     r"""TME approximation for mean and covariance.
 
     Formally, this function approximates
@@ -236,12 +217,10 @@ def mean_and_cov(x: MatrixSymbol,
     ----------
     x : MatrixSymbol
         Symbolic state vector.
-    a : Matrix
+    drift : Matrix
         Symbolic drift coefficient.
-    b : Matrix
+    dispersion : Matrix
         Symbolic dispersion coefficient.
-    Qw : Matrix
-        Symbolic spectral density of :math:`W`.
     dt : Symbol
         Symbolic time interval. You can create one, for example, by :code:`dt=sympy.Symbol('dt', positive=True)`.
     order : int, default=3
@@ -275,13 +254,13 @@ def mean_and_cov(x: MatrixSymbol,
     phi = Matrix([x])
     m = Matrix([x])
     for r in range(1, order + 1):
-        phi = generator_vec(phi, x, a, b, Qw)
+        phi = generator_vec(phi, x, drift, dispersion)
         m = m + 1 / factorial(r) * phi * dt ** r
 
     # Give covariance estimate
     # Precompute powers of generator
-    Ax = generator_power(Matrix([x]), x, a, b, Qw, order)
-    Axx = generator_power(x * x.T, x, a, b, Qw, order)
+    Ax = generator_power(Matrix([x]), x, drift, dispersion, order)
+    Axx = generator_power(x * x.T, x, drift, dispersion, order)
 
     cov = sympy.zeros(dim_x, dim_x)
     for r in range(1, order + 1):
@@ -299,10 +278,7 @@ def mean_and_cov(x: MatrixSymbol,
     return m, cov
 
 
-def expectation(phi: Matrix,
-                x: MatrixSymbol,
-                a: Matrix, b: Matrix, Qw: Matrix,
-                dt: Symbol = None,
+def expectation(phi: Matrix, x: MatrixSymbol, drift: Matrix, dispersion: Matrix, dt: Symbol = None,
                 order: int = 3, simp: Union[bool, Callable] = True) -> Matrix:
     r"""TME approximation of expectation on target function :math:`\phi`.
 
@@ -320,12 +296,10 @@ def expectation(phi: Matrix,
         Target function.
     x : MatrixSymbol
         Symbolic state vector.
-    a : Matrix
+    drift : Matrix
         Symbolic drift coefficient.
-    b : Matrix
+    dispersion : Matrix
         Symbolic dispersion coefficient.
-    Qw : Matrix
-        Symbolic spectral density of :math:`W`.
     dt : Symbol, optional
         Symbolic time interval. If this is not specified by the user, then the function will create one.
     order : int, default=3
@@ -343,7 +317,7 @@ def expectation(phi: Matrix,
         dt = Symbol('dt', positive=True)
 
     # Precompute generator powers
-    Ar = generator_power(phi, x, a, b, Qw, order)
+    Ar = generator_power(phi, x, drift, dispersion, order)
 
     expec = sympy.zeros(*phi.shape)
     for r in range(order + 1):
@@ -360,6 +334,4 @@ def expectation(phi: Matrix,
 
 
 def warn_simp():
-    """Warn about sympy.simplify
-    """
-    warnings.warn('The simplification method sympy.simplify can be very slow and throw weird errors.')
+    warnings.warn('The simplification method sympy.simplify can be slow in some cases.')

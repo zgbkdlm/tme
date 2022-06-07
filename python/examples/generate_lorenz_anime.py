@@ -14,10 +14,8 @@ from matplotlib.animation import FuncAnimation
 sigma = 10.
 rho = 28.
 beta = 8 / 3
-Qw = jnp.eye(3)
 
 
-@jax.jit
 def drift(u):
     return jnp.array([sigma * (u[1] - u[0]),
                       u[0] * (rho - u[2]) - u[1],
@@ -27,19 +25,17 @@ def drift(u):
 bb = 0.15 * jnp.eye(3)
 
 
-@jax.jit
-def dispersion(u):
+def dispersion(_):
     return bb
 
 
 def tme_m_cov(u, dt, order):
     return tme.mean_and_cov(x=u, dt=dt,
-                            a=drift, b=dispersion, Qw=Qw, order=order)
+                            drift=drift, dispersion=dispersion, order=order)
 
 
-@jit
 def em_m_cov(u, dt):
-    return u + drift(u) * dt, dispersion(u) @ Qw @ dispersion(u).T * dt
+    return u + drift(u) * dt, dispersion(u) @ dispersion(u).T * dt
 
 
 @partial(jit, static_argnums=(0,))
@@ -149,33 +145,19 @@ ax.set_zlabel('Z')
 
 
 def anime_init():
-    l1.set_data(true_sample[0, :2].T)
-    l1.set_3d_properties(true_sample[0, 2])
-
-    l2.set_data(sample_tme_2[0, :2].T)
-    l2.set_3d_properties(sample_tme_2[0, 2])
-
-    l3.set_data(sample_tme_3[0, :2].T)
-    l3.set_3d_properties(sample_tme_3[0, 2])
-
-    l4.set_data(sample_em[0, :2].T)
-    l4.set_3d_properties(sample_em[0, 2])
+    l1.set_data_3d(true_sample[0, 0], true_sample[0, 1], true_sample[0, 2])
+    l2.set_data_3d(sample_tme_2[0, 0], sample_tme_2[0, 1], sample_tme_2[0, 2])
+    l3.set_data_3d(sample_tme_3[0, 0], sample_tme_3[0, 1], sample_tme_3[0, 2])
+    l4.set_data_3d(sample_em[0, 0], sample_em[0, 1], sample_em[0, 2])
 
     return l1, l2, l3, l4
 
 
 def anime_func(frame):
-    l1.set_data(true_sample[:frame, :2].T)
-    l1.set_3d_properties(true_sample[:frame, 2])
-
-    l2.set_data(sample_tme_2[:frame, :2].T)
-    l2.set_3d_properties(sample_tme_2[:frame, 2])
-
-    l3.set_data(sample_tme_3[:frame, :2].T)
-    l3.set_3d_properties(sample_tme_3[:frame, 2])
-
-    l4.set_data(sample_em[:frame, :2].T)
-    l4.set_3d_properties(sample_em[:frame, 2])
+    l1.set_data_3d(true_sample[:frame, 0], true_sample[:frame, 1], true_sample[:frame, 2])
+    l2.set_data_3d(sample_tme_2[:frame, 0], sample_tme_2[:frame, 1], sample_tme_2[:frame, 2])
+    l3.set_data_3d(sample_tme_3[:frame, 0], sample_tme_3[:frame, 1], sample_tme_3[:frame, 2])
+    l4.set_data_3d(sample_em[:frame, 0], sample_em[:frame, 1], sample_em[:frame, 2])
 
     return l1, l2, l3, l4
 
