@@ -12,7 +12,7 @@ install `jax` by yourself beforehand).
 ```python
 import tme.base_jax as tme
 import jax.numpy as jnp
-from jax import jit
+from jax import jit, vmap
 
 # Define SDE coefficients.
 alp = 1.
@@ -35,9 +35,9 @@ def tme_m_cov(x, dt):
 
 # Compute E[X(t) | X(0)=x0]
 x0 = jnp.array([0., -1])
-t = 1.
+ts = jnp.array([0.25, 0.5, 1.])
 
-m_t, cov_t = tme_m_cov(x0, t)
+m_t, cov_t = vmap(tme_m_cov, in_axes=[None, 0])(x0, ts)
 ```
 
 Inside folder `examples`, there are a few Jupyter notebooks showing how to use the TME method (in SymPy and JaX).
