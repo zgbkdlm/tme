@@ -14,6 +14,8 @@
 
 6. Fixed a plotting error in `examples/generate_lorenz_anime.py`. This error is due to a bug of `matplotlib`, see https://github.com/matplotlib/matplotlib/issues/22308.
 
+7. The `sympy` simplification problem seems to be solved in the current version 1.10.1.
+
 ...
 
 0.1.3 (August 17, 2021)
