@@ -8,7 +8,7 @@ with open('requirements.txt') as f:
 
 setup(
     name="tme",
-    version="0.1.3",
+    version="0.1.4",
     author="Zheng Zhao",
     author_email="zz@zabemon.com",
     description="Taylor moment expansion in Python.",

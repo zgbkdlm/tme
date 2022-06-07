@@ -26,8 +26,6 @@ class TestGenerator(unittest.TestCase):
                          [0, self.x[1], self.x[1]],
                          [0, 0, self.x[2]]])
 
-        self.Q = eye(self.dim_w)
-
     def test_scalar(self) -> None:
         """
         Test generator()
@@ -37,7 +35,7 @@ class TestGenerator(unittest.TestCase):
         phi = x[1] * x[2]
         true_result = x[0] * x[1] * x[2] + x[1] * sin(x[2]) + x[1] * x[2]
 
-        assert (simplify(tme.generator(phi, x, self.a, self.b, self.Q) - true_result) == 0)
+        assert (simplify(tme.generator(phi, x, self.a, self.b) - true_result) == 0)
 
     def test_vector(self) -> None:
         """
@@ -56,7 +54,7 @@ class TestGenerator(unittest.TestCase):
                                   )
                               ]])
 
-        assert (simplify(tme.generator_vec(phi, x, self.a, self.b, self.Q) - true_result) == Matrix([[0], [0]]))
+        assert (simplify(tme.generator_vec(phi, x, self.a, self.b) - true_result) == Matrix([[0], [0]]))
 
     def test_matrix(self) -> None:
         """
@@ -69,7 +67,7 @@ class TestGenerator(unittest.TestCase):
         true_result = Matrix([[x[0] * x[1], sin(x[2])],
                               [x[0] ** 2 + x[1], cos(x[1]) * x[0] * x[1] - sin(x[1]) * x[1] ** 2]])
 
-        assert (simplify(tme.generator_mat(phi, x, self.a, self.b, self.Q) - true_result) == Matrix([[0, 0], [0, 0]]))
+        assert (simplify(tme.generator_mat(phi, x, self.a, self.b) - true_result) == Matrix([[0, 0], [0, 0]]))
 
     def test_power(self) -> None:
         """
@@ -85,7 +83,7 @@ class TestGenerator(unittest.TestCase):
         true_result = [phi, Matrix([[x[0] ** 2 + x[1]],
                                     [sin(x[2])]]), Matrix([[2 * x[0] * (x[0] ** 2 + x[1]) + x[0] * x[1] + x[0] ** 2],
                                                            [cos(x[2]) * sin(x[2]) - 0.5 * sin(x[2]) * x[2] ** 2]])]
-        results = tme.generator_power(phi, x, self.a, self.b, self.Q, order)
+        results = tme.generator_power(phi, x, self.a, self.b, order)
 
         for i, j in zip(true_result, results):
             assert (simplify(i - j) == Matrix([[0], [0]]))
@@ -112,7 +110,7 @@ class TestBenes(unittest.TestCase):
         x = self.x
         dt = self.dt
 
-        m, sigma = tme.mean_and_cov(self.x, self.a, self.b, self.Q, self.dt, order=3, simp=True)
+        m, sigma = tme.mean_and_cov(self.x, self.a, self.b, self.dt, order=3, simp=True)
 
         # Note that there is a typo in the paper.
         # \\phi_{x, 2} after equation 23 should multiply by 2.

@@ -26,19 +26,19 @@ def phi_jax_2d(x):
     return jnp.array([[x[0] * x[1], x[1] ** 3]])
 
 
-def generator(phi, x, a, b, Qw):
+def generator(phi, x, a, b):
     bb = b(x)
-    return jacfwd(phi)(x) @ a(x) + 0.5 * jnp.trace(hessian(phi)(x) @ (bb @ Qw @ bb.T), axis1=-2, axis2=-1)
+    return jacfwd(phi)(x) @ a(x) + 0.5 * jnp.trace(hessian(phi)(x) @ (bb @ bb.T), axis1=-2, axis2=-1)
 
 
-def generator_power_naive(phi, a, b, Qw, order: int):
+def generator_power_naive(phi, a, b, order: int):
     list_of_gen_powers = [phi]
 
     gen_power = phi
 
     for _ in range(order):
-        def gen_power(z, f=gen_power):  # noqa (zz: that's why you should start to use matlab xD)
-            return generator(f, z, a, b, Qw)
+        def gen_power(z, f=gen_power):
+            return generator(f, z, a, b)
 
         list_of_gen_powers.append(gen_power)
 
@@ -65,13 +65,10 @@ class TestJaxVsSymPy(unittest.TestCase):
         self.b = sp.Matrix([[1., 2., 3.],
                             [1., 1., 1.]])
 
-        self.Q = sp.eye(self.dim_w)
-
         self.order = 4
 
     def gen_Ap_sympy(self):
-        return tme_sp.generator_power(phi_sym(self.sym_x),
-                                      self.sym_x, self.a, self.b, self.Q, self.order)
+        return tme_sp.generator_power(phi_sym(self.sym_x), self.sym_x, self.a, self.b, self.order)
 
     @staticmethod
     def a_jax(z):
@@ -89,8 +86,8 @@ class TestJaxVsSymPy(unittest.TestCase):
         x = 0.1 * np.random.randn(self.dim_x)
 
         list_of_Ap_sympy = self.gen_Ap_sympy()
-        list_of_Ap_jax = tme_jax.generator_power(phi_jax, self.a_jax, self.b_jax, jnp.eye(self.dim_w), self.order)
-        list_of_Ap_jax_naive = generator_power_naive(phi_jax, self.a_jax, self.b_jax, jnp.eye(self.dim_w), self.order)
+        list_of_Ap_jax = tme_jax.generator_power(phi_jax, self.a_jax, self.b_jax, self.order)
+        list_of_Ap_jax_naive = generator_power_naive(phi_jax, self.a_jax, self.b_jax, self.order)
 
         for Ap_sympy, Ap_jax, Ap_jax_naive in zip(list_of_Ap_sympy, list_of_Ap_jax, list_of_Ap_jax_naive):
             Ap_func_sympy = sp.lambdify([self.sym_x], Ap_sympy, 'numpy')
@@ -110,8 +107,7 @@ class TestJaxVsSymPy(unittest.TestCase):
 
         for order in [2, 3, 4]:
             # TODO: SymPy simplify() throws weird "__new__ missing" error for order >= 4.
-            m_sympy, cov_sympy = tme_sp.mean_and_cov(self.sym_x, self.a, self.b, self.Q, self.sym_dt,
-                                                     order, simp=False)
+            m_sympy, cov_sympy = tme_sp.mean_and_cov(self.sym_x, self.a, self.b, self.sym_dt, order, simp=False)
             m_sympy_func = sp.lambdify([self.sym_x, self.sym_dt], m_sympy, 'numpy')
             cov_sympy_func = sp.lambdify([self.sym_x, self.sym_dt], cov_sympy, 'numpy')
 
@@ -120,7 +116,7 @@ class TestJaxVsSymPy(unittest.TestCase):
 
             @jit
             def jitted_mcov(z):
-                return tme_jax.mean_and_cov(z, dt, self.a_jax, self.b_jax, jnp.eye(self.dim_w), order)
+                return tme_jax.mean_and_cov(z, dt, self.a_jax, self.b_jax, order)
 
             m_result_jax, cov_result_jax = jitted_mcov(x)
 
@@ -134,8 +130,7 @@ class TestJaxVsSymPy(unittest.TestCase):
         dt = 0.01
 
         for order in [2, 3, 4]:
-            expec_sympy = tme_sp.expectation(phi_sym(self.sym_x),
-                                             self.sym_x, self.a, self.b, self.Q, self.sym_dt,
+            expec_sympy = tme_sp.expectation(phi_sym(self.sym_x), self.sym_x, self.a, self.b, self.sym_dt,
                                              order, simp=False)
             expec_sympy_func = sp.lambdify([self.sym_x, self.sym_dt], expec_sympy, 'numpy')
 
@@ -143,7 +138,7 @@ class TestJaxVsSymPy(unittest.TestCase):
 
             @jit
             def jitted_expec(z):
-                return tme_jax.expectation(phi_jax, z, dt, self.a_jax, self.b_jax, jnp.eye(self.dim_w), order)
+                return tme_jax.expectation(phi_jax, z, dt, self.a_jax, self.b_jax, order)
 
             expec_result_jax = jitted_expec(x)
 
@@ -161,7 +156,6 @@ class TestvsEulerMaruyama(unittest.TestCase):
         sigma = 10.
         rho = 28.
         beta = 8 / 3
-        Qw = jnp.eye(3)
 
         def drift(u):
             return jnp.array([sigma * (u[1] - u[0]),
@@ -175,12 +169,11 @@ class TestvsEulerMaruyama(unittest.TestCase):
 
         @jit
         def tme_m_cov(u, dt):
-            return tme_jax.mean_and_cov(x=u, dt=dt,
-                                        a=drift, b=dispersion, Qw=Qw, order=1)
+            return tme_jax.mean_and_cov(x=u, dt=dt, drift=drift, dispersion=dispersion, order=1)
 
         @jit
         def em_m_cov(u, dt):
-            return u + drift(u) * dt, dispersion(u) @ Qw @ dispersion(u).T * dt
+            return u + drift(u) * dt, dispersion(u) @ dispersion(u).T * dt
 
         x = jnp.array(np.random.randn(3))
         dt = 1.
