@@ -9,7 +9,10 @@ import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import tme.base_jax as tme
 from jax import jit, lax
+from jax.config import config
 from matplotlib.animation import FuncAnimation
+
+config.update("jax_enable_x64", True)
 
 sigma = 10.
 rho = 28.
@@ -45,8 +48,7 @@ def disc_normal(m_and_cov, x0, dts, dws):
         dt, dw = elem
 
         m, cov = m_and_cov(x, dt)
-        chol = jnp.linalg.cholesky(cov)
-        x = m + chol @ dw
+        x = m + jnp.linalg.cholesky(cov) @ dw
         return x, x
 
     _, sample = lax.scan(scan_body, x0, (dts, dws))
@@ -62,20 +64,20 @@ key = jax.random.PRNGKey(666)
 # Init cond
 m0 = jnp.zeros((3,))
 P0 = jnp.eye(3)
-key, subkey = jax.random.split(key)
-x0 = jax.random.multivariate_normal(key=subkey, mean=m0, cov=P0)
+key, _ = jax.random.split(key)
+x0 = jax.random.multivariate_normal(key=key, mean=m0, cov=P0)
 
 # Generate ground true sample with very small dt and high order TME
-num_time_steps = 100_000
-T = jnp.linspace(0.0001, 10, num_time_steps)
+num_time_steps = 100_000_0
+T = jnp.linspace(1e-5, 10, num_time_steps)
 dts = jnp.diff(T)
-key, subkey = jax.random.split(key)
+key, _ = jax.random.split(key)
 dws = jax.random.normal(key, shape=(dts.size, x0.shape[0]))
 
 true_sample = disc_normal(tme_m_cov_4, x0, dts, dws)
 
 # Now make samples from EM and TME with large dt
-factor = 100
+factor = 1000
 T_small = T[::factor]
 dts_small = dts[::factor] * factor
 dws_small = dws[::factor]
@@ -122,7 +124,7 @@ fig = plt.figure()
 ax = plt.axes(projection='3d')
 
 l1, = ax.plot3D(true_sample[1, 0], true_sample[1, 1], true_sample[1, 2],
-                c='black', linestyle='--', label='True sample', marker='x', markevery=factor // 10, zorder=3)
+                c='black', linestyle='--', label='True sample', marker='x', markevery=factor // 100, zorder=3)
 l2, = ax.plot3D(sample_tme_2[1, 0], sample_tme_2[1, 1], sample_tme_2[1, 2],
                 c='#7bccc4',
                 label=f'TME-2 sample |abs. error {abs_err_tme_2:.1f}| |average runtime {time_tme_2:.1E} s|', zorder=2)
