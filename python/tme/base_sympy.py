@@ -11,9 +11,9 @@ TME applies on stochastic differential equations (SDEs) of the form
     process having the unit spectral density.
     Functions :math:`a \colon \mathbb{R}^d \to \mathbb{R}^d`
     and :math:`b \colon \mathbb{R}^d \to \mathbb{R}^{d \times w}` stand for the drift and dispersion coefficients,
-    respectively. :math:`\mathbb{T} = \lbrace t\in\mathbb{R}\colon t\geq t_0 \rbrace` stands for a temporal domain.
+    respectively. :math:`\mathbb{T} = [t_0, \infty)` stands for a temporal domain.
 
-For more detailed explanations of TME, see, Zhao (2021) or Zhao et al. (2020). Notations used in this doc-site exactly
+For more detailed explanations of TME, see, Zhao (2021) or Zhao et al. (2020). Notations used in this doc-site
 follows from Zhao (2021).
 
 Functions
@@ -232,7 +232,7 @@ def mean_and_cov(x: MatrixSymbol, drift: Matrix, dispersion: Matrix, dt: Symbol,
         .. warning::
 
             The method :code:`sympy.simplify` can be unnecessarily slow when the system is complicated,
-            see <https://docs.sympy.org/latest/tutorial/simplification.html>`_.
+            see `this page <https://docs.sympy.org/latest/tutorial/simplification.html>`_ for details.
 
     Returns
     -------
