@@ -193,7 +193,7 @@ def mean_and_cov(x: jnp.ndarray, dt: float, drift: Callable, dispersion: Callabl
     for r in range(2, order + 1):
         coeff = Aphi_ii_powers[r]
         for k in range(r + 1):
-            coeff = coeff - _comb(r, k) * jnp.outer(Aphi_i_powers[k], Aphi_i_powers[r - k])
+            coeff = coeff - math.comb(r, k) * jnp.outer(Aphi_i_powers[k], Aphi_i_powers[r - k])
         cov = cov + 1 / factorial(r) * coeff * dt ** r
 
     return m, cov
@@ -234,13 +234,6 @@ def expectation(phi: Callable, x: jnp.ndarray, dt: float, drift: Callable, dispe
         Aphi += 1 / factorial(r) * list_of_Aphi[r](x) * dt ** r
 
     return Aphi
-
-
-def _comb(n, k):
-    try:
-        return math.comb(n, k)
-    except AttributeError:  # Python version < 3.8 does not have math.comb
-        return _manual_comb(n, k)
 
 
 def _manual_comb(n, k):
