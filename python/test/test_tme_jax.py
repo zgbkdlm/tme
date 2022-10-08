@@ -160,10 +160,8 @@ class TestvsEulerMaruyama(unittest.TestCase):
                               u[0] * (rho - u[2]) - u[1],
                               u[0] * u[1] - beta * u[2]])
 
-        bb = 0.15 * jnp.eye(3)
-
         def dispersion(u):
-            return bb
+            return jnp.diag(jnp.array([1., u[1] * u[2], u[0]]))
 
         @jit
         def tme_m_cov(u, dt):

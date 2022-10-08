@@ -78,24 +78,16 @@ def generator_power(phi: Callable, drift: Callable, dispersion: Callable, order:
     """
 
     def jac_part(z, f):
-        # This computes the Jacobian-vector product J[f](z) * a(z)
         return jvp(f, (z,), (drift(z),))[1]
 
-    def hess_prod_1(z, f):
-        # This computes the Jacobian-vector product J[f](z) * b(z)
+    def hess_prod_1(z, f, b):
         _, linearized_f = linearize(f, z)
-        return vmap(linearized_f, in_axes=1, out_axes=0)(_format_dispersion(dispersion(z)))
+        return vmap(linearized_f, in_axes=1, out_axes=0)(b)
 
     def hess_prod_2(z, f):
-        # This computes the double Jacobian-vector product J[z -> J[f](z) * b(z)](z) * b(z).T
-        # This is an equivalent, but more efficient way, to computing the Hessian form b(z).T * H[f](z) * b(z)
-        # TODO: Verify is linearize is faster than vectorized vjp here.
-        _, linearized_f = linearize(lambda zz: hess_prod_1(zz, f), z)
-        return vmap(linearized_f, in_axes=0, out_axes=1)(_format_dispersion(dispersion(z)).T)
-
-    def hess_part(z, f):
-        # This computes the trace of the matrix product batched along the trailing dimensions of the Hessian.
-        return jnp.einsum("ii...", hess_prod_2(z, f))
+        b = _format_dispersion(dispersion(z))
+        _, linearized_f = linearize(lambda zz: hess_prod_1(zz, f, b), z)
+        return vmap(linearized_f, in_axes=0, out_axes=1)(b.T)
 
     gen_power = phi
 
@@ -103,7 +95,7 @@ def generator_power(phi: Callable, drift: Callable, dispersion: Callable, order:
 
     for _ in range(order):
         def gen_power(z, f=gen_power):
-            return jac_part(z, f) + 0.5 * hess_part(z, f)
+            return jac_part(z, f) + 0.5 * jnp.einsum("ii...", hess_prod_2(z, f))
 
         list_of_gen_powers.append(gen_power)
 
