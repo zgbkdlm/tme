@@ -4,7 +4,7 @@
 -----------------------
 1. Try JET for efficient computation of recursive derivatives.
 
-0.1.5 (working release)
+0.1.5 (8 October, 2022)
 -----------------------
 1. Fixed a critical bug in computing the matrix-Hessian-matrix multiplication. Fortunately this bug does not affect the results when using constant dispersion coefficient.
 
