@@ -3,7 +3,7 @@ Convenient JAX typings.
 """
 import jax
 import numpy as np
-from typing import Any
+from typing import Any, Union
 
 # The three types are exactly the same alias of jax.Array. We differ them only semantically.
 JArray = jax.Array
@@ -17,9 +17,9 @@ JKey = jax.Array
 PyTree = Any
 
 # Arrays
-Array = JArray | np.ndarray
+Array = Union[JArray, np.ndarray]
 
 # Scalar values
-FloatScalar = float | JFloat
-IntScalar = int | JFloat
-BoolScalar = bool | JBool
+FloatScalar = Union[float, JFloat]
+IntScalar = Union[int, JFloat]
+BoolScalar = Union[bool, JBool]
