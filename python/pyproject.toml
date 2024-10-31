@@ -1,0 +1,43 @@
+[build-system]
+requires = ['setuptools >= 75.2.0']
+build-backend = 'setuptools.build_meta'
+
+[tool.setuptools]
+packages = ['tme']
+
+[project]
+name = 'tme'
+version = '0.2.0'
+authors = [
+    { name = 'Zheng Zhao', email = 'zz@zabemon.com' },
+]
+description = 'Taylor moment expansion in Python'
+readme = 'README.md'
+license = { file = 'LICENSE' }
+requires-python = '>=3.8'
+classifiers = [
+    'Programming Language :: Python :: 3',
+    'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
+    'Operating System :: OS Independent',
+    'Intended Audience :: Science/Research',
+    'Intended Audience :: Developers',
+    'Topic :: Scientific/Engineering :: Artificial Intelligence',
+    'Topic :: Scientific/Engineering :: Information Analysis',
+    'Topic :: Scientific/Engineering :: Mathematics'
+]
+keywords = ['Markov models', 'stochastic differential equations', 'statistics']
+dependencies = [
+    'numpy>=1.19.2',
+    'scipy>=1.5.2',
+    'sympy>=1.8'
+]
+
+[project.optional-dependencies]
+test = [
+    'pytest==8.3.3'
+]
+
+[project.urls]
+homepage = 'https://github.com/zgbkdlm/tme'
+documentation = 'https://tme.readthedocs.io'
+repository = 'https://github.com/zgbkdlm/tme'
