@@ -141,8 +141,8 @@ def generator(phi: Callable[[Array, FloatScalar], JArray],
     return generator_power(phi, drift, dispersion, 1)[1]
 
 
-def mean_and_cov(x: JArray, dt: FloatScalar,
-                 drift: Callable[[JArray], JArray], dispersion: Callable[[JArray], JArray],
+def mean_and_cov(x: Array, dt: FloatScalar,
+                 drift: Callable[[Array], JArray], dispersion: Callable[[Array], JArray],
                  order: int = 3) -> Tuple[JArray, JArray]:
     r"""TME approximation for mean and covariance.
 
@@ -204,7 +204,7 @@ def mean_and_cov(x: JArray, dt: FloatScalar,
 
 
 def expectation(phi: Callable[[Array, FloatScalar], JArray],
-                x: JArray, t: FloatScalar, dt: FloatScalar,
+                x: Array, t: FloatScalar, dt: FloatScalar,
                 drift: Callable[[Array, FloatScalar], JArray],
                 dispersion: Callable[[Array, FloatScalar], JArray],
                 order: int = 3) -> JArray:
