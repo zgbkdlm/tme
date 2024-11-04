@@ -23,9 +23,6 @@ Authors
 -------
 Adrien Corenflos and Zheng Zhao, 2021
 """
-from jax.experimental.sparse import jacfwd
-from sympy import Float
-
 # TODO: The logic further down can be improved dramatically if we make diagonal noise specific logic.
 
 try:
