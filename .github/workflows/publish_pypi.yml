@@ -25,7 +25,6 @@ jobs:
         python -m build
         twine check dist/*
     - name: Publish distribution to PyPI
-      if: endsWith(github.ref, env.PY_VER)
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         user: __token__
