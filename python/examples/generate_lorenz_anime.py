@@ -9,10 +9,9 @@ import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import tme.base_jax as tme
 from jax import jit, lax
-from jax.config import config
 from matplotlib.animation import FuncAnimation
 
-config.update("jax_enable_x64", True)
+jax.config.update("jax_enable_x64", True)
 
 sigma = 10.
 rho = 28.

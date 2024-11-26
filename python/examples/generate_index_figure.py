@@ -1,17 +1,16 @@
 """
 Generate the animated figure in the index page.
 """
+import jax
 import math
-from typing import Tuple
-
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import tme.base_jax as tme
 from jax import vmap
-from jax.config import config
 from matplotlib.animation import FuncAnimation
+from typing import Tuple
 
-config.update("jax_enable_x64", True)
+jax.config.update("jax_enable_x64", True)
 
 alp = 1.
 Qw = 0.1

@@ -1,13 +1,19 @@
 # Changelog
 
-0.1.6 (working release)
+0.2.1 (working release)
 -----------------------
-1. Try JET for efficient computation of recursive derivatives.
+1. Try JET or forward Laplacian for efficient computation of recursive derivatives.
+
+0.2.0 (31 October 2024)
+-----------------------
+1. Deprecated the old `setup.py`; now use `pyproject.toml`.
+2. Added semantic typings for better documentation.
+3. Added support for SDEs with time-dependent drift/dispersion, as well as for target function \phi. The time variable support is not implemented for `tme.mean_and_cov` as we don't have a consistent approximation for the covariance part for now. Note implemented for the `sympy` module either.
+4. Migrated all the `unittest` to `pytest`.
 
 0.1.5 (8 October, 2022)
 -----------------------
 1. Fixed a critical bug in computing the matrix-Hessian-matrix multiplication. Fortunately this bug does not affect the results when using constant dispersion coefficient.
-
 
 0.1.4 (8 June, 2022)
 -----------------------

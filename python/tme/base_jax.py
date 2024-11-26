@@ -1,4 +1,4 @@
-"""
+r"""
 Taylor moment expansion (TME) in JaX.
 
 For math details, please see the docstring of :py:mod:`tme.base_sympy`.
@@ -32,11 +32,11 @@ except:
                       "In order to use it, follow the instructions on https://github.com/google/jax#installation.")
 
 import math
-from math import factorial
-from typing import Callable, List, Tuple
-
 import jax.numpy as jnp
+from math import factorial
 from jax import jvp, linearize, vmap
+from typing import Callable, List, Tuple
+from tme.typings import Array, JArray, FloatScalar
 
 __all__ = ['generator',
            'generator_power',
@@ -44,18 +44,20 @@ __all__ = ['generator',
            'expectation']
 
 
-def generator_power(phi: Callable, drift: Callable, dispersion: Callable, order: int = 1) -> List[Callable]:
+def generator_power(phi: Callable[[Array, FloatScalar], JArray],
+                    drift: Callable[[Array, FloatScalar], JArray], dispersion: Callable[[Array, FloatScalar], JArray],
+                    order: int = 1) -> List[Callable[[Array, FloatScalar], JArray]]:
     r"""Iterations/power of infinitesimal generator.
 
     For math details, see the docstring of :py:func:`tme.base_sympy.generator_power`.
 
     Parameters
     ----------
-    phi : Callable (d,) -> (...)
+    phi : Callable (d, float) -> (...)
         Target function.
-    drift : Callable (d,) -> (d,)
+    drift : Callable (d, float) -> (d,)
         SDE drift coefficient.
-    dispersion : Callable (d,) -> (d, w)
+    dispersion : Callable (d, float) -> (d, w)
         SDE dispersion coefficient, where `w` stands for the dimension of the Wiener process.
     order : int, optional
         Number of generator iterations. Must be >=0. Default is 1, which corresponds to the standard infinitesimal
@@ -67,26 +69,27 @@ def generator_power(phi: Callable, drift: Callable, dispersion: Callable, order:
         List of generator functions in ascending power order. Formally, this function returns
         :math:`[\phi, \mathcal{A}\phi, \ldots, \mathcal{A}^p\phi]`, where :code:`p` is the order.
         Each callable function in this list has exactly the same input-output shape
-        signature as phi:  (d,) -> (...).
+        signature as phi:  (d, float) -> (...).
 
     Notes
     -----
-    The implementation is due to Adrien Corenflos. Thank you for contributing this.
+    The implementation was initiated by Adrien Corenflos. Thank you for contributing this.
 
     You may also find a naive implementation of infinitesimal generators and their iterations in the test file
     :code:`./test/test_tme_jax.py`.
     """
 
-    def jac_part(z, f):
-        return jvp(f, (z,), (drift(z),))[1]
+    def jac_part(x, t, f):
+        return jvp(f, (x, t), (drift(x, t), 1.))[1]
 
-    def hess_prod_1(z, f, b):
-        _, linearized_f = linearize(f, z)
+    def hess_prod_1(x, f, b):
+        _, linearized_f = linearize(f, x)
         return vmap(linearized_f, in_axes=1, out_axes=0)(b)
 
-    def hess_prod_2(z, f):
-        b = _format_dispersion(dispersion(z))
-        _, linearized_f = linearize(lambda zz: hess_prod_1(zz, f, b), z)
+    def hess_prod_2(x, t, f):
+        b = _format_dispersion(dispersion(x, t))
+        f_x = lambda x_: f(x_, t)
+        _, linearized_f = linearize(lambda xx: hess_prod_1(xx, f_x, b), x)
         return vmap(linearized_f, in_axes=0, out_axes=1)(b.T)
 
     gen_power = phi
@@ -94,15 +97,17 @@ def generator_power(phi: Callable, drift: Callable, dispersion: Callable, order:
     list_of_gen_powers = [gen_power]
 
     for _ in range(order):
-        def gen_power(z, f=gen_power):
-            return jac_part(z, f) + 0.5 * jnp.einsum("ii...", hess_prod_2(z, f))
+        def gen_power(x, t, f=gen_power):
+            return jac_part(x, t, f) + 0.5 * jnp.einsum("ii...", hess_prod_2(x, t, f))
 
         list_of_gen_powers.append(gen_power)
 
     return list_of_gen_powers
 
 
-def generator(phi: Callable, drift: Callable, dispersion: Callable) -> Callable:
+def generator(phi: Callable[[Array, FloatScalar], JArray],
+              drift: Callable[[Array, FloatScalar], JArray],
+              dispersion: Callable[[Array, FloatScalar], JArray]) -> Callable[[Array, FloatScalar], JArray]:
     r"""Infinitesimal generator for diffusion processes in Ito's SDE constructions.
 
     .. math::
@@ -117,31 +122,32 @@ def generator(phi: Callable, drift: Callable, dispersion: Callable) -> Callable:
 
     Parameters
     ----------
-    phi : Callable (d,) -> (...)
+    phi : Callable (d, float) -> (...)
         Target function.
-    drift : Callable (d,) -> (d,)
+    drift : Callable (d, float) -> (d,)
         SDE drift coefficient.
-    dispersion : Callable (d,) -> (d, w)
+    dispersion : Callable (d, float) -> (d, w)
         SDE dispersion coefficient, where `w` stands for the dimension of the Wiener process.
 
     Returns
     -------
-    Callable (...)
+    Callable (d, float) -> (...)
         A callable function which carries out :math:`x \mapsto \mathcal{A}\phi`. The output shape of this function
         is the same as :code:`phi`.
     """
     return generator_power(phi, drift, dispersion, 1)[1]
 
 
-def mean_and_cov(x: jnp.ndarray, dt: float, drift: Callable, dispersion: Callable,
-                 order: int = 3) -> Tuple[jnp.ndarray, jnp.ndarray]:
+def mean_and_cov(x: Array, dt: FloatScalar,
+                 drift: Callable[[Array], JArray], dispersion: Callable[[Array], JArray],
+                 order: int = 3) -> Tuple[JArray, JArray]:
     r"""TME approximation for mean and covariance.
 
     For math details, see the docstring of :py:func:`tme.base_sympy.mean_and_cov`.
 
     Parameters
     ----------
-    x : jnp.ndarray (d,)
+    x : JArray (d,)
         The state at which the generator is evaluated. (i.e., the :math:`x` in
         :math:`\mathbb{E}[X(t + \Delta t) \mid X(t)=x]` and :math:`\mathrm{Cov}[X(t + \Delta t) \mid X(t)=x]`).
     dt : float
@@ -155,18 +161,21 @@ def mean_and_cov(x: jnp.ndarray, dt: float, drift: Callable, dispersion: Callabl
 
     Returns
     -------
-    m : jnp.ndarray (d,)
+    m : JArray (d,)
         TME approximation of mean :math:`\mathbb{E}[X(t + \Delta t) \mid X(t)=x]`.
-    cov : jnp.ndarray (d, d)
+    cov : JArray (d, d)
         TME approximation of covariance :math:`\mathrm{Cov}[X(t + \Delta t) \mid X(t)=x]`.
 
     Notes
     -----
-    When `order = 1`, the TME mean and cov approximations are exactly the same with Euler--Maruyama.
+    - When `order = 1`, the TME mean and cov approximations are exactly the same with Euler--Maruyama.
+    - This function does not support time-dependent drift and dispersion coefficients. Note the signature
+    difference of `drift` and `dispersion` compared to `expectation`. The reason is that it is not clear how
+    a principled covariance approximation will be made.
     """
     # Give generator powers of phi^I and phi^II then evaluate them all
-    list_of_Aphi_i = generator_power(lambda z: z, drift, dispersion, order)
-    list_of_Aphi_ii = generator_power(lambda z: jnp.outer(z, z), drift, dispersion, order)
+    list_of_Aphi_i = _generator_power_ti(lambda z: z, drift, dispersion, order)
+    list_of_Aphi_ii = _generator_power_ti(lambda z: jnp.outer(z, z), drift, dispersion, order)
 
     Aphi_i_powers = [func(x) for func in list_of_Aphi_i]
     Aphi_ii_powers = [func(x) for func in list_of_Aphi_ii]
@@ -191,24 +200,29 @@ def mean_and_cov(x: jnp.ndarray, dt: float, drift: Callable, dispersion: Callabl
     return m, cov
 
 
-def expectation(phi: Callable, x: jnp.ndarray, dt: float, drift: Callable, dispersion: Callable,
-                order: int = 3) -> jnp.ndarray:
+def expectation(phi: Callable[[Array, FloatScalar], JArray],
+                x: Array, t: FloatScalar, dt: FloatScalar,
+                drift: Callable[[Array, FloatScalar], JArray],
+                dispersion: Callable[[Array, FloatScalar], JArray],
+                order: int = 3) -> JArray:
     r"""TME approximation of expectation on any target function :math:`\phi`.
 
     For math details, see the docstring of :py:func:`tme.base_sympy.expectation`.
 
     Parameters
     ----------
-    phi : Callable (d,) -> (...)
+    phi : Callable (d, float) -> (...)
         Target function (must be sufficiently smooth depending on the order).
-    x : jnp.ndarray (d, )
+    x : JArray (d, )
         The state at which the generator is evaluated (i.e., the :math:`x` in
         :math:`\mathbb{E}[\phi(X(t + \Delta t)) \mid X(t)=x]`).
+    t : FloatScalar
+        Time at which :math:`\phi(\cdot, t)` is computed.
     dt : float
         Time interval.
-    drift : Callable (d,) -> (d,)
+    drift : Callable (d, float) -> (d,)
         SDE drift coefficient.
-    dispersion : Callable (d,) -> (d, w)
+    dispersion : Callable (d, float) -> (d, w)
         SDE dispersion coefficient, where `w` stands for the dimension of the Wiener process.
     order : int
         Order of TME. Must be >=0. For the relationship between the expansion order and SDE coefficient smoothness, see,
@@ -216,16 +230,49 @@ def expectation(phi: Callable, x: jnp.ndarray, dt: float, drift: Callable, dispe
 
     Returns
     -------
-    jnp.ndarray (...)
-        TME approximation of :math:`\mathbb{E}[\phi(X(t + \Delta t)) \mid X(t)]`. The output shape is consistence with
-        the input shape of :code:`phi`.
+    JArray (...)
+        TME approximation of :math:`\mathbb{E}[\phi(X(t + \Delta t), t + \Delta t) \mid X(t)]`.
+        The output shape is consistence with the input shape of :code:`phi`.
     """
     list_of_Aphi = generator_power(phi, drift, dispersion, order)
-    Aphi = phi(x)
+    Aphi = phi(x, t)
     for r in range(1, order + 1):
-        Aphi += 1 / factorial(r) * list_of_Aphi[r](x) * dt ** r
+        Aphi += 1 / factorial(r) * list_of_Aphi[r](x, t) * dt ** r
 
     return Aphi
+
+
+def _generator_power_ti(phi: Callable[[Array], JArray],
+                        drift: Callable[[Array], JArray],
+                        dispersion: Callable[[Array], JArray],
+                        order: int = 1) -> List[Callable[[Array], JArray]]:
+    """The same as with :py:func:`tme.base_jax.generator_power` but works only for time-independent
+    phi, drift, and dispersion.
+    """
+
+    def jac_part(x, f):
+        return jvp(f, (x,), (drift(x),))[1]
+
+    def hess_prod_1(x, f, b):
+        _, linearized_f = linearize(f, x)
+        return vmap(linearized_f, in_axes=1, out_axes=0)(b)
+
+    def hess_prod_2(x, f):
+        b = _format_dispersion(dispersion(x))
+        _, linearized_f = linearize(lambda xx: hess_prod_1(xx, f, b), x)
+        return vmap(linearized_f, in_axes=0, out_axes=1)(b.T)
+
+    gen_power = phi
+
+    list_of_gen_powers = [gen_power]
+
+    for _ in range(order):
+        def gen_power(x, f=gen_power):
+            return jac_part(x, f) + 0.5 * jnp.einsum("ii...", hess_prod_2(x, f))
+
+        list_of_gen_powers.append(gen_power)
+
+    return list_of_gen_powers
 
 
 def _comb(n, k):
