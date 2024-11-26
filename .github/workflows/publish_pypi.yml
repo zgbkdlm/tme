@@ -21,8 +21,8 @@ jobs:
     - name: Install twine and wheel, and build
       working-directory: ./python
       run: |
-        pip install twine wheel
-        python setup.py sdist bdist_wheel
+        pip install --upgrade pip twine wheel build
+        python -m build
         twine check dist/*
     - name: Save the package version to variable so to cross check with tag
       working-directory: ./python
