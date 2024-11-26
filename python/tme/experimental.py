@@ -13,7 +13,8 @@ def generator_power_diagonal(phi: Callable[[Array, FloatScalar], JArray],
                              drift: Callable[[Array, FloatScalar], JArray],
                              dispersion: FloatScalar,
                              order: int = 1) -> List[Callable[[Array, FloatScalar], JArray]]:
-    """When the dispersion is a constant diagonal.
+    """When the dispersion is a constant diagonal, we can compute the Laplacian part efficiently.
+    Experimental, do not use.
     """
 
     def jac_part(x, t, f):
